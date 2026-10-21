@@ -56,10 +56,9 @@ describe("resolveModel", () => {
 });
 
 test("parseModels ignores non-id lines", () => {
-  expect(parseModels("opencode-go/grok-4.7\nsome warning\n\nxai/grok-4.20-0309-reasoning\n")).toEqual([
-    "opencode-go/grok-4.7",
-    "xai/grok-4.20-0309-reasoning",
-  ]);
+  expect(
+    parseModels("opencode-go/grok-4.7\nsome warning\n\nxai/grok-4.20-0309-reasoning\n"),
+  ).toEqual(["opencode-go/grok-4.7", "xai/grok-4.20-0309-reasoning"]);
 });
 
 test("family name without version lists candidates", () => {

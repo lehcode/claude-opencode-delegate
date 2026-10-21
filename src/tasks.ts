@@ -19,26 +19,41 @@ const MAX_FINISHED = 100;
 const tasks = new Map<string, Task>();
 
 function prune() {
-  const finished = [...tasks.values()].filter((t) => t.status !== "running").sort((a, b) => a.startedAt - b.startedAt);
-  for (const t of finished.slice(0, Math.max(0, finished.length - MAX_FINISHED))) tasks.delete(t.id);
+  const finished = [...tasks.values()]
+    .filter((t) => t.status !== "running")
+    .sort((a, b) => a.startedAt - b.startedAt);
+  for (const t of finished.slice(0, Math.max(0, finished.length - MAX_FINISHED)))
+    tasks.delete(t.id);
 }
 
 export function startTask(input: DelegateInput): Task {
   const controller = new AbortController();
-  const task = { id: `task_${randomUUID().slice(0, 8)}`, input, status: "running", startedAt: Date.now(), controller } as Task;
-  task.promise = delegate(input, controller.signal).then(
-    (outcome) => {
-      task.outcome = outcome;
-      task.status = controller.signal.aborted ? "cancelled" : outcome.result.ok ? "done" : "error";
-    },
-    (err: unknown) => {
-      task.error = err instanceof Error ? err.message : String(err);
-      task.status = "error";
-    },
-  ).finally(() => {
-    task.finishedAt = Date.now();
-    prune();
-  });
+  const task = {
+    id: `task_${randomUUID().slice(0, 8)}`,
+    input,
+    status: "running",
+    startedAt: Date.now(),
+    controller,
+  } as Task;
+  task.promise = delegate(input, controller.signal)
+    .then(
+      (outcome) => {
+        task.outcome = outcome;
+        task.status = controller.signal.aborted
+          ? "cancelled"
+          : outcome.result.ok
+            ? "done"
+            : "error";
+      },
+      (err: unknown) => {
+        task.error = err instanceof Error ? err.message : String(err);
+        task.status = "error";
+      },
+    )
+    .finally(() => {
+      task.finishedAt = Date.now();
+      prune();
+    });
   tasks.set(task.id, task);
   return task;
 }

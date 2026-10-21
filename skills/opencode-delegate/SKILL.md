@@ -11,12 +11,12 @@ orchestrator**: you plan, write the brief, and review what comes back.
 
 ## Tools
 
-| Tool | Use |
-|---|---|
-| `list_models` (`filter?`) | Find the exact `provider/model` id. |
-| `delegate` | Run a task and wait for the result. |
+| Tool                                        | Use                                                                         |
+| ------------------------------------------- | --------------------------------------------------------------------------- |
+| `list_models` (`filter?`)                   | Find the exact `provider/model` id.                                         |
+| `delegate`                                  | Run a task and wait for the result.                                         |
 | `delegate_async` → `task_result` (`wait_s`) | Long tasks, or several models in parallel. Also `task_list`, `task_cancel`. |
-| `list_sessions` | Find a `session_id` to continue. |
+| `list_sessions`                             | Find a `session_id` to continue.                                            |
 
 In a plugin install the tools are named like `mcp__plugin_opencode-delegate_opencode__delegate`. With
 a manual install they are `mcp__opencode__delegate`.
