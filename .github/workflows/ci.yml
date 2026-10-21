@@ -11,5 +11,4 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: npm install
       - run: bun run verify
-      - name: dist is up to date
-        run: bun run build && git diff --exit-code dist/
+      - run: bun run build

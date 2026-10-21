@@ -6,7 +6,7 @@
 bun install          # install deps (uses bun.lock)
 bun test             # run unit tests (fixture-based, no services needed)
 bun run typecheck    # TypeScript strict check (bun check)
-bun run build        # bundle to dist/index.js — committed to repo, so install needs no build
+bun run build        # bundle to dist/index.js
 bun run lint         # lint (eslint)
 bun run fmt          # format check (prettier)
 bun run fmt:fix      # auto-fix formatting (prettier)
