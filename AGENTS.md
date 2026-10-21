@@ -16,6 +16,15 @@ bun run start        # run server from source (for interactive debugging)
 
 CI (`.github/workflows/ci.yml`) runs these in order: `install → verify`.
 
+## Hooks
+
+Tracked hooks live in `hooks/`. They run automatically on commit/push:
+
+- **pre-commit**: Prettier check + ESLint on staged files only (fast). Skips docs-only changes.
+- **pre-push**: Full `npm run verify` (typecheck, test, lint, format). Runs once per push.
+
+Configure after clone: `git config core.hooksPath hooks/`
+
 ## Architecture
 
 Single-entry MCP server (`src/index.ts`) registering six tools: `list_models`, `delegate`,
