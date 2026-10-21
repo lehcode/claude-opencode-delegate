@@ -18,7 +18,10 @@ export async function listModels(refresh = false): Promise<string[]> {
     if (prev && models.length > 0 && models.length === prev.length) break;
     prev = models;
   }
-  if (!best.length) throw new Error("'opencode models' returned no models — is a provider configured? Try `opencode auth`.");
+  if (!best.length)
+    throw new Error(
+      "'opencode models' returned no models — is a provider configured? Try `opencode auth`.",
+    );
   cache = { at: Date.now(), models: best };
   return best;
 }
@@ -31,7 +34,20 @@ export function parseModels(stdout: string): string[] {
 }
 
 // Words people naturally put around a model name ("use grok 4.7 from xAI in opencode").
-const STOPWORDS = new Set(["use", "using", "with", "from", "in", "on", "via", "the", "a", "model", "opencode", "by"]);
+const STOPWORDS = new Set([
+  "use",
+  "using",
+  "with",
+  "from",
+  "in",
+  "on",
+  "via",
+  "the",
+  "a",
+  "model",
+  "opencode",
+  "by",
+]);
 
 function tokenize(s: string): string[] {
   return s
@@ -62,7 +78,10 @@ const AGGREGATORS = new Set([
 ]);
 
 /** Lower is better: explicit preference order, then direct providers, then aggregators. */
-export function providerRank(provider: string, preferred: string[] = config.preferredProviders): number {
+export function providerRank(
+  provider: string,
+  preferred: string[] = config.preferredProviders,
+): number {
   const p = provider.toLowerCase();
   const i = preferred.indexOf(p);
   if (i >= 0) return i;
@@ -75,8 +94,7 @@ const splitId = (id: string) => {
 };
 
 export type Resolution =
-  | { ok: true; model: string; exact: boolean }
-  | { ok: false; reason: string; candidates: string[] };
+  { ok: true; model: string; exact: boolean } | { ok: false; reason: string; candidates: string[] };
 
 /**
  * Resolves a loose model name ("grok 4.7", "xAI grok-4.7", "kimi k3") to an opencode `provider/model` id.
@@ -87,7 +105,11 @@ export type Resolution =
  *   glm-5.3-flash); a query without any version ("mimo") is ambiguous whenever several models tie;
  * - the same model from several providers goes to the best-ranked provider (see providerRank).
  */
-export function resolveModel(query: string, models: string[], preferred: string[] = config.preferredProviders): Resolution {
+export function resolveModel(
+  query: string,
+  models: string[],
+  preferred: string[] = config.preferredProviders,
+): Resolution {
   const [base = "", variant] = query.trim().split("#", 2);
   const withVariant = (m: string) => (variant ? `${m}#${variant}` : m);
 
@@ -122,7 +144,9 @@ export function resolveModel(query: string, models: string[], preferred: string[
   if (!best) return { ok: false, reason: `no opencode model matches '${query}'`, candidates: [] };
   // Without a version in the query ("mimo", "grok"), don't guess between versions/sizes.
   const hasVersion = tokens.some(isVersion);
-  const tied = scored.filter((s) => s.score === best.score && (!hasVersion || s.extras === best.extras));
+  const tied = scored.filter(
+    (s) => s.score === best.score && (!hasVersion || s.extras === best.extras),
+  );
   if (tied.length > 1) {
     // Same model from several providers → take the best-ranked provider if it is unique.
     const names = new Set(tied.map((t) => splitId(t.id).name));
@@ -130,7 +154,8 @@ export function resolveModel(query: string, models: string[], preferred: string[
       const ranked = tied
         .map((t) => ({ id: t.id, rank: providerRank(splitId(t.id).provider, preferred) }))
         .sort((a, b) => a.rank - b.rank);
-      if (ranked[0]!.rank < ranked[1]!.rank) return { ok: true, model: withVariant(ranked[0]!.id), exact: false };
+      if (ranked[0]!.rank < ranked[1]!.rank)
+        return { ok: true, model: withVariant(ranked[0]!.id), exact: false };
     }
     return { ok: false, reason: `'${query}' is ambiguous`, candidates: tied.map((t) => t.id) };
   }

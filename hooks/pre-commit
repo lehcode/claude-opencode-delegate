@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# pre-commit: lint and format-check staged files only.
+# Skips if no staged files or only docs changed.
+
+echo "🔍 Running pre-commit hooks..."
+
+# Get staged files (add, copy, modify)
+STAGED=$(git diff --cached --name-only --diff-filter=ACM)
+if [ -z "$STAGED" ]; then
+  echo "  (no staged files, skipping)"
+  exit 0
+fi
+
+# 1. Prettier format check on relevant staged files
+FORMAT_FILES=$(echo "$STAGED" | grep -E '\.(ts|js|json|md|yml|yaml)$' || true)
+if [ -n "$FORMAT_FILES" ]; then
+  echo "  🎨 Prettier format check..."
+  npx prettier --check $FORMAT_FILES
+  echo "  ✓ Prettier check passed"
+else
+  echo "  (no formatable files staged, skipping)"
+fi
+
+# 2. ESLint on staged .ts files only
+TS_FILES=$(echo "$STAGED" | grep -E '\.ts$' || true)
+if [ -n "$TS_FILES" ]; then
+  echo "  📋 ESLint on staged files..."
+  npx eslint $TS_FILES
+  echo "  ✓ ESLint passed"
+else
+  echo "  (no .ts files staged, skipping)"
+fi
+
+echo "✅ Pre-commit hooks passed"
+exit 0

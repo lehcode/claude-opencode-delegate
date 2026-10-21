@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# pre-push: run full verify (typecheck, test, lint, format).
+# Skips on dry-run or if CI is the proper gate.
+
+echo "🚀 Running pre-push hooks..."
+
+# Skip on dry-run
+if [ "$1" = "--dry-run" ]; then
+  echo "  (dry-run, skipping)"
+  exit 0
+fi
+
+# Full verification
+echo "  🔧 Verifying..."
+npm run verify
+echo "  ✓ Verify passed"
+
+echo "✅ Pre-push hooks passed"
+exit 0

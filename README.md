@@ -83,11 +83,11 @@ Desktop has no project directory, so either set `OPENCODE_DELEGATE_CWD` or ask C
 
 Talk to Claude normally:
 
-- *"Use grok 4.7 from xAI in opencode to implement pagination for /api/users. You review it."*
-- *"Ask kimi k3 via opencode for a second opinion on this diff, read-only."*
-- *"Have glm 5.3 and qwen 3.8 max both implement the parser in separate worktrees, then pick the better one."*
+- _"Use grok 4.7 from xAI in opencode to implement pagination for /api/users. You review it."_
+- _"Ask kimi k3 via opencode for a second opinion on this diff, read-only."_
+- _"Have glm 5.3 and qwen 3.8 max both implement the parser in separate worktrees, then pick the better one."_
 - `/opencode deepseek v4 flash -- write unit tests for src/date.ts`
-- *"Spawn opencode-worker subagents: minimax m3 does the docs, kimi k3 does the tests."*
+- _"Spawn opencode-worker subagents: minimax m3 does the docs, kimi k3 does the tests."_
 
 ### Model names
 
@@ -109,13 +109,13 @@ You can use exact ids (`opencode-go/grok-4.7`) or loose names (`grok 4.7`, `kimi
 
 ### Tools
 
-| Tool | What it does |
-|---|---|
-| `list_models` | Lists the `opencode models` output. Takes an optional `filter`. |
-| `delegate` | Runs a task and waits for it. Returns the response, `session_id`, token usage, tools used, and git changes. |
-| `delegate_async` | Same as `delegate`, but returns a `task_id` right away. Use it for long jobs and parallel fan-out. |
-| `task_result` / `task_list` / `task_cancel` | Collect results (with `wait_s`), list tasks, or stop a background task. |
-| `list_sessions` | Lists recent opencode sessions, so you can find one to continue. |
+| Tool                                        | What it does                                                                                                |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `list_models`                               | Lists the `opencode models` output. Takes an optional `filter`.                                             |
+| `delegate`                                  | Runs a task and waits for it. Returns the response, `session_id`, token usage, tools used, and git changes. |
+| `delegate_async`                            | Same as `delegate`, but returns a `task_id` right away. Use it for long jobs and parallel fan-out.          |
+| `task_result` / `task_list` / `task_cancel` | Collect results (with `wait_s`), list tasks, or stop a background task.                                     |
+| `list_sessions`                             | Lists recent opencode sessions, so you can find one to continue.                                            |
 
 `delegate` and `delegate_async` take these arguments:
 
@@ -140,16 +140,16 @@ conflict.
 
 ## Configuration (env vars)
 
-| Variable | Default | |
-|---|---|---|
-| `OPENCODE_BIN` | auto-detected | Path to the `opencode` executable. |
-| `OPENCODE_DELEGATE_DEFAULT_MODEL` | `opencode-go/muse-spark-1.3-contributor` | Model used when `model` is omitted. Set it to `""` to use opencode's own default. |
-| `OPENCODE_DELEGATE_READ_MODEL` | `opencode/muse-spark-1.3-contributor-free` | Model used when `model` is omitted and `auto` is false (reading files, reviews, questions). Free by default. |
-| `OPENCODE_DELEGATE_AUTO` | `true` | Default for `auto`. |
-| `OPENCODE_DELEGATE_TIMEOUT` | `1800` | Seconds before a run is killed. |
-| `OPENCODE_DELEGATE_MAX_OUTPUT` | `40000` | Maximum number of response characters returned to Claude. |
-| `OPENCODE_DELEGATE_CWD` | the server's cwd | Base directory for `cwd`. |
-| `OPENCODE_DELEGATE_PREFERRED_PROVIDERS` | *(none)* | Comma-separated provider order used when a model is offered by several providers, e.g. `xai,opencode-go`. Without it, the model maker's own provider beats resellers. |
+| Variable                                | Default                                    |                                                                                                                                                                       |
+| --------------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OPENCODE_BIN`                          | auto-detected                              | Path to the `opencode` executable.                                                                                                                                    |
+| `OPENCODE_DELEGATE_DEFAULT_MODEL`       | `opencode-go/muse-spark-1.3-contributor`   | Model used when `model` is omitted. Set it to `""` to use opencode's own default.                                                                                     |
+| `OPENCODE_DELEGATE_READ_MODEL`          | `opencode/muse-spark-1.3-contributor-free` | Model used when `model` is omitted and `auto` is false (reading files, reviews, questions). Free by default.                                                          |
+| `OPENCODE_DELEGATE_AUTO`                | `true`                                     | Default for `auto`.                                                                                                                                                   |
+| `OPENCODE_DELEGATE_TIMEOUT`             | `1800`                                     | Seconds before a run is killed.                                                                                                                                       |
+| `OPENCODE_DELEGATE_MAX_OUTPUT`          | `40000`                                    | Maximum number of response characters returned to Claude.                                                                                                             |
+| `OPENCODE_DELEGATE_CWD`                 | the server's cwd                           | Base directory for `cwd`.                                                                                                                                             |
+| `OPENCODE_DELEGATE_PREFERRED_PROVIDERS` | _(none)_                                   | Comma-separated provider order used when a model is offered by several providers, e.g. `xai,opencode-go`. Without it, the model maker's own provider beats resellers. |
 
 ## Development
 
