@@ -45,8 +45,8 @@ Tests mirror this structure: `test/models.test.ts` (resolution logic), `test/ope
 
 ## Gotchas
 
-- **`dist/` is committed** — changes to source must be bundled (`bun run build`) and committed
-  before release. Never run a production install from source alone.
+- **`dist/` is ignored** — changes to source must be bundled (`bun run build`) before release.
+  Never run a production install from source alone.
 - **Model resolution rejects ambiguity.** `resolveModel("mimo", ...)` returns an error (not a
   guess) when multiple models tie. Tests assert this with `toStartWith("ERR:")`.
 - **`EventCollector` handles non-JSON.** If the stream emits non-JSON lines they fall through to
