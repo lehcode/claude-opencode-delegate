@@ -28,7 +28,13 @@ export interface RunResult {
   sessionId?: string;
   text: string;
   toolCalls: ToolCall[];
-  tokens: { input: number; output: number; reasoning: number; cacheRead: number; cacheWrite: number };
+  tokens: {
+    input: number;
+    output: number;
+    reasoning: number;
+    cacheRead: number;
+    cacheWrite: number;
+  };
   cost: number;
   steps: number;
   error?: string;
@@ -52,6 +58,27 @@ export function buildArgs(o: RunOptions): string[] {
   return args;
 }
 
+interface JsonEvent {
+  sessionID?: unknown;
+  part?: Record<string, unknown>;
+  type?: string;
+  error?: unknown;
+  cost?: string | number;
+}
+
+interface Part {
+  tool?: unknown;
+  text?: unknown;
+  state?: { status?: unknown; title?: string; input?: unknown };
+  tokens?: {
+    input?: number;
+    output?: number;
+    reasoning?: number;
+    cache?: { read?: number; write?: number };
+  };
+  cost?: string | number;
+}
+
 /** Folds opencode `--format json` event lines into a result. Unknown events are ignored. */
 export class EventCollector {
   sessionId?: string;
@@ -66,23 +93,24 @@ export class EventCollector {
   push(line: string) {
     const trimmed = line.trim();
     if (!trimmed) return;
-    let e: any;
+    let e: JsonEvent;
     try {
       e = JSON.parse(trimmed);
     } catch {
       this.raw.push(trimmed);
       return;
     }
-    if (e.sessionID && !this.sessionId) this.sessionId = e.sessionID;
-    const p = e.part ?? {};
-    switch (e.type) {
+    if (e.sessionID && !this.sessionId) this.sessionId = String(e.sessionID);
+    const p = (e.part ?? {}) as Part;
+    const type = (e.type ?? "unknown") as string;
+    switch (type) {
       case "text":
         if (typeof p.text === "string") this.texts.push(p.text);
         break;
       case "tool_use":
         this.toolCalls.push({
-          tool: p.tool,
-          status: p.state?.status,
+          tool: String(p.tool ?? ""),
+          status: String(p.state?.status ?? ""),
           title: p.state?.title,
           input: p.state?.input,
         });
@@ -110,10 +138,23 @@ export class EventCollector {
   }
 }
 
-function errorMessage(err: any): string {
-  const msg = err?.data?.message ?? err?.message ?? err?.name ?? err?.type;
-  const ref = err?.data?.ref ? ` (ref ${err.data.ref})` : "";
-  return typeof msg === "string" ? msg + ref : JSON.stringify(err);
+function getProp(obj: unknown, ...keys: string[]): unknown {
+  let v = obj;
+  for (const k of keys) {
+    if (v != null && typeof v === "object") v = (v as Record<string, unknown>)[k];
+    else return undefined;
+  }
+  return v;
+}
+
+function errorMessage(err: unknown): string {
+  const msg =
+    getProp(err, "data", "message") ??
+    getProp(err, "message") ??
+    getProp(err, "name") ??
+    getProp(err, "type");
+  const ref = getProp(err, "data", "ref");
+  return typeof msg === "string" ? msg + (ref ? ` (ref ${ref})` : "") : JSON.stringify(err);
 }
 
 export function runOpencode(o: RunOptions): Promise<RunResult> {
@@ -165,7 +206,8 @@ export function runOpencode(o: RunOptions): Promise<RunResult> {
       if (spawnError) errors.push(spawnError);
       if (timedOut) errors.push(`timed out after ${Math.round((o.timeoutMs ?? 0) / 1000)}s`);
       else if (o.signal?.aborted) errors.push("cancelled");
-      if (exitCode && !errors.length) errors.push(stderr.trim().split("\n").slice(-5).join("\n") || `exit code ${exitCode}`);
+      if (exitCode && !errors.length)
+        errors.push(stderr.trim().split("\n").slice(-5).join("\n") || `exit code ${exitCode}`);
       resolve({
         ok: exitCode === 0 && !errors.length,
         sessionId: collector.sessionId,
@@ -185,9 +227,16 @@ export function runOpencode(o: RunOptions): Promise<RunResult> {
   });
 }
 
-export function execText(args: string[], cwd?: string): Promise<{ code: number | null; stdout: string; stderr: string }> {
+export function execText(
+  args: string[],
+  cwd?: string,
+): Promise<{ code: number | null; stdout: string; stderr: string }> {
   return new Promise((resolve) => {
-    const child = spawn(config.bin, args, { cwd, env: process.env, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(config.bin, args, {
+      cwd,
+      env: process.env,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     let stdout = "";
     let stderr = "";
     child.stdout.setEncoding("utf8").on("data", (c: string) => (stdout += c));

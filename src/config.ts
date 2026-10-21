@@ -41,9 +41,15 @@ function int(v: string | undefined, dflt: number): number {
 
 export const config = {
   bin: resolveBin(),
-  defaultModel: model(process.env.OPENCODE_DELEGATE_DEFAULT_MODEL, "opencode-go/muse-spark-1.3-contributor"),
+  defaultModel: model(
+    process.env.OPENCODE_DELEGATE_DEFAULT_MODEL,
+    "opencode-go/muse-spark-1.3-contributor",
+  ),
   // Used when no model is given and the run is read-only (auto: false): reading, reviews, questions.
-  readModel: model(process.env.OPENCODE_DELEGATE_READ_MODEL, "opencode/muse-spark-1.3-contributor-free"),
+  readModel: model(
+    process.env.OPENCODE_DELEGATE_READ_MODEL,
+    "opencode/muse-spark-1.3-contributor-free",
+  ),
   auto: bool(process.env.OPENCODE_DELEGATE_AUTO, true),
   timeoutSec: int(process.env.OPENCODE_DELEGATE_TIMEOUT, 1800),
   maxOutputChars: int(process.env.OPENCODE_DELEGATE_MAX_OUTPUT, 40000),

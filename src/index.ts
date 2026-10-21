@@ -12,7 +12,10 @@ import pkg from "../package.json" with { type: "json" };
 
 const server = new McpServer({ name: "opencode-delegate", version: pkg.version });
 
-const text = (t: string, isError = false) => ({ content: [{ type: "text" as const, text: t }], isError });
+const text = (t: string, isError = false) => ({
+  content: [{ type: "text" as const, text: t }],
+  isError,
+});
 
 const delegateShape = {
   prompt: z
@@ -27,27 +30,54 @@ const delegateShape = {
     .describe(
       `opencode model: exact 'provider/model' id (e.g. 'xai/grok-4.7') or a loose name ('grok 4.7', 'kimi k3'). Append '#variant' for a reasoning variant. Omit to use the default: ${config.defaultModel ?? "opencode's default"} for normal tasks, ${config.readModel ?? config.defaultModel ?? "opencode's default"} (free) when auto is false.`,
     ),
-  cwd: z.string().optional().describe("Working directory for the task (absolute, or relative to the server's cwd). Defaults to the current project."),
-  agent: z.string().optional().describe("opencode agent to use (e.g. 'build', 'plan', or a custom agent)."),
+  cwd: z
+    .string()
+    .optional()
+    .describe(
+      "Working directory for the task (absolute, or relative to the server's cwd). Defaults to the current project.",
+    ),
+  agent: z
+    .string()
+    .optional()
+    .describe("opencode agent to use (e.g. 'build', 'plan', or a custom agent)."),
   files: z.array(z.string()).optional().describe("Files to attach to the message."),
-  session_id: z.string().optional().describe("Continue an existing opencode session (returned by a previous call) for follow-ups."),
+  session_id: z
+    .string()
+    .optional()
+    .describe(
+      "Continue an existing opencode session (returned by a previous call) for follow-ups.",
+    ),
   continue: z.boolean().optional().describe("Continue the most recent opencode session in cwd."),
-  fork: z.boolean().optional().describe("Fork the session given by session_id/continue instead of appending to it."),
+  fork: z
+    .boolean()
+    .optional()
+    .describe("Fork the session given by session_id/continue instead of appending to it."),
   auto: z
     .boolean()
     .optional()
-    .describe(`Auto-approve tool permissions (edits, shell) that are not explicitly denied. Default: ${config.auto}. Set false for read-only work (reading files, reviews, questions); without a model that also selects the free read model.`),
+    .describe(
+      `Auto-approve tool permissions (edits, shell) that are not explicitly denied. Default: ${config.auto}. Set false for read-only work (reading files, reviews, questions); without a model that also selects the free read model.`,
+    ),
   title: z.string().optional().describe("Session title shown in opencode."),
-  timeout_s: z.number().int().positive().optional().describe(`Kill the run after this many seconds. Default: ${config.timeoutSec}.`),
+  timeout_s: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe(`Kill the run after this many seconds. Default: ${config.timeoutSec}.`),
 };
 
 server.registerTool(
   "list_models",
   {
     title: "List opencode models",
-    description: "List the models available in the local opencode install, as 'provider/model' ids.",
+    description:
+      "List the models available in the local opencode install, as 'provider/model' ids.",
     inputSchema: {
-      filter: z.string().optional().describe("Case-insensitive substring filter, e.g. 'grok' or 'opencode-go/'."),
+      filter: z
+        .string()
+        .optional()
+        .describe("Case-insensitive substring filter, e.g. 'grok' or 'opencode-go/'."),
       refresh: z.boolean().optional().describe("Bypass the 5 minute cache."),
     },
     annotations: { readOnlyHint: true },
@@ -81,7 +111,11 @@ server.registerTool(
           extra
             .sendNotification({
               method: "notifications/progress",
-              params: { progressToken, progress: tick, message: `opencode running (${tick * 15}s)` },
+              params: {
+                progressToken,
+                progress: tick,
+                message: `opencode running (${tick * 15}s)`,
+              },
             })
             .catch(() => {});
         }, 15000)
@@ -113,7 +147,9 @@ server.registerTool(
   },
   async (input) => {
     const t = startTask(input);
-    return text(`started ${t.id}\nCall task_result with task_id="${t.id}" (optionally wait_s) to get the output.`);
+    return text(
+      `started ${t.id}\nCall task_result with task_id="${t.id}" (optionally wait_s) to get the output.`,
+    );
   },
 );
 
@@ -121,10 +157,17 @@ server.registerTool(
   "task_result",
   {
     title: "Get a background opencode task's result",
-    description: "Return the status/result of a delegate_async task, optionally waiting up to wait_s seconds for it to finish.",
+    description:
+      "Return the status/result of a delegate_async task, optionally waiting up to wait_s seconds for it to finish.",
     inputSchema: {
       task_id: z.string(),
-      wait_s: z.number().int().min(0).max(3600).optional().describe("Seconds to wait for completion before returning (default 0)."),
+      wait_s: z
+        .number()
+        .int()
+        .min(0)
+        .max(3600)
+        .optional()
+        .describe("Seconds to wait for completion before returning (default 0)."),
     },
     annotations: { readOnlyHint: true },
   },
@@ -132,8 +175,10 @@ server.registerTool(
     const t = getTask(task_id);
     if (!t) return text(`unknown task_id '${task_id}'`, true);
     await waitTask(t, wait_s ?? 0);
-    if (t.status === "running") return text(`${taskSummary(t)}\nstill running — call again later or with a larger wait_s.`);
-    if (t.outcome) return text(`task: ${t.id} (${t.status})\n${formatOutcome(t.outcome)}`, t.status !== "done");
+    if (t.status === "running")
+      return text(`${taskSummary(t)}\nstill running — call again later or with a larger wait_s.`);
+    if (t.outcome)
+      return text(`task: ${t.id} (${t.status})\n${formatOutcome(t.outcome)}`, t.status !== "done");
     return text(`task: ${t.id} (${t.status})\nerror: ${t.error}`, true);
   },
 );
@@ -173,7 +218,8 @@ server.registerTool(
   "list_sessions",
   {
     title: "List opencode sessions",
-    description: "List recent opencode sessions for a project directory (to find a session_id to continue).",
+    description:
+      "List recent opencode sessions for a project directory (to find a session_id to continue).",
     inputSchema: {
       cwd: z.string().optional().describe("Project directory. Defaults to the current project."),
       limit: z.number().int().positive().max(100).optional().describe("Max sessions (default 20)."),
