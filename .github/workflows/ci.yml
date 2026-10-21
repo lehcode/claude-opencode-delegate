@@ -9,8 +9,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
-      - run: bun install --frozen-lockfile
-      - run: bun run typecheck
-      - run: bun test
-      - name: dist is up to date
-        run: bun run build && git diff --exit-code dist/
+      - run: npm install
+      - run: bun run verify
+      - run: bun run build

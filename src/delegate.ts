@@ -27,16 +27,23 @@ export interface DelegateOutcome {
 }
 
 function gitStatus(cwd: string): Set<string> | undefined {
-  const r = spawnSync("git", ["status", "--porcelain", "--untracked-files=all"], { cwd, encoding: "utf8" });
+  const r = spawnSync("git", ["status", "--porcelain", "--untracked-files=all"], {
+    cwd,
+    encoding: "utf8",
+  });
   if (r.status !== 0) return undefined;
   return new Set(r.stdout.split("\n").filter(Boolean));
 }
 
-export async function delegate(input: DelegateInput, signal?: AbortSignal): Promise<DelegateOutcome> {
+export async function delegate(
+  input: DelegateInput,
+  signal?: AbortSignal,
+): Promise<DelegateOutcome> {
   const cwd = resolve(config.defaultCwd, input.cwd ?? ".");
   if (!existsSync(cwd)) throw new Error(`cwd does not exist: ${cwd}`);
   const auto = input.auto ?? config.auto;
-  const query = input.model ?? (auto ? config.defaultModel : (config.readModel ?? config.defaultModel));
+  const query =
+    input.model ?? (auto ? config.defaultModel : (config.readModel ?? config.defaultModel));
   const model = query ? await resolveModelOrThrow(query) : undefined;
   const files = input.files?.map((f) => (isAbsolute(f) ? f : resolve(cwd, f)));
 
@@ -81,7 +88,11 @@ export function formatOutcome(o: DelegateOutcome): string {
     lines.push(`tools used: ${[...counts].map(([k, v]) => `${k}×${v}`).join(", ")}`);
   }
   if (o.changedFiles) {
-    lines.push(o.changedFiles.length ? `git changes:\n${o.changedFiles.map((f) => `  ${f}`).join("\n")}` : "git changes: none");
+    lines.push(
+      o.changedFiles.length
+        ? `git changes:\n${o.changedFiles.map((f) => `  ${f}`).join("\n")}`
+        : "git changes: none",
+    );
   }
   lines.push("", "--- response ---", truncate(r.text || "(no text output)", config.maxOutputChars));
   return lines.join("\n");

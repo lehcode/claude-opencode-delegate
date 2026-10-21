@@ -4,7 +4,10 @@ import { buildArgs, EventCollector } from "../src/opencode.ts";
 
 const collect = (fixture: string) => {
   const c = new EventCollector();
-  for (const line of readFileSync(new URL(`./fixtures/${fixture}`, import.meta.url), "utf8").split("\n")) c.push(line);
+  for (const line of readFileSync(new URL(`./fixtures/${fixture}`, import.meta.url), "utf8").split(
+    "\n",
+  ))
+    c.push(line);
   return c;
 };
 
@@ -38,8 +41,35 @@ describe("EventCollector", () => {
 describe("buildArgs", () => {
   test("full options", () => {
     expect(
-      buildArgs({ prompt: "-do it", model: "a/b", agent: "build", sessionId: "ses_1", fork: true, auto: true, title: "t", files: ["/x"] }),
-    ).toEqual(["run", "--format", "json", "--model", "a/b", "--agent", "build", "--session", "ses_1", "--fork", "--auto", "--title", "t", "--file", "/x", "--", "-do it"]);
+      buildArgs({
+        prompt: "-do it",
+        model: "a/b",
+        agent: "build",
+        sessionId: "ses_1",
+        fork: true,
+        auto: true,
+        title: "t",
+        files: ["/x"],
+      }),
+    ).toEqual([
+      "run",
+      "--format",
+      "json",
+      "--model",
+      "a/b",
+      "--agent",
+      "build",
+      "--session",
+      "ses_1",
+      "--fork",
+      "--auto",
+      "--title",
+      "t",
+      "--file",
+      "/x",
+      "--",
+      "-do it",
+    ]);
   });
   test("minimal", () => {
     expect(buildArgs({ prompt: "hi" })).toEqual(["run", "--format", "json", "--", "hi"]);
