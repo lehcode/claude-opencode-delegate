@@ -21,7 +21,7 @@ describe("npm package", () => {
       ".claude-plugin/marketplace.json",
       "agents/opencode-worker.md",
       "commands/opencode.md",
-      "skills/opencode-delegate/SKILL.md",
+      "skills/claudelegate/SKILL.md",
       "scripts/route-to-opencode.sh",
       "scripts/guard-main-thread-mcp.sh",
       "plugin-hooks/hooks.json",
