@@ -11,11 +11,12 @@ claude ▸ reads git diff, runs tests, reports which model did what and a verdic
 
 ## What ships
 
-| Surface | File                                | Role                                                                    |
-| ------- | ----------------------------------- | ----------------------------------------------------------------------- |
-| Skill   | `skills/opencode-delegate/SKILL.md` | Model picking, brief template, review-after-return rules                |
-| Agent   | `agents/opencode-worker.md`         | Thin forwarder (`tools: Bash`, `model: haiku`): one `opencode run`      |
-| Command | `commands/opencode.md`              | `/opencode <model> -- <task>`: splits on `--`, spawns `opencode-worker` |
+| Surface | File                                | Role                                                                                                      |
+| ------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Skill   | `skills/opencode-delegate/SKILL.md` | Model picking, brief template, review-after-return rules                                                  |
+| Agent   | `agents/opencode-worker.md`         | Thin forwarder (`tools: Bash`, `model: haiku`): one `opencode run`                                        |
+| Command | `commands/opencode.md`              | `/opencode <model> -- <task>`: splits on `--`, spawns `opencode-worker`                                   |
+| Hook    | `scripts/route-to-opencode.sh`      | PreToolUse hook (`plugin-hooks/hooks.json`): reroutes general-purpose subagent calls to `opencode-worker` |
 
 No MCP server, no build step, no `dist/`. Claude Desktop is not supported.
 
@@ -38,6 +39,19 @@ ${OPENCODE_BIN:-opencode} run --format json --agent build --auto [-m provider/mo
 ```
 
 The run uses your existing OpenCode auth, config, agents and permission rules.
+
+## Automatic routing
+
+A plugin PreToolUse hook (`scripts/route-to-opencode.sh`, wired by `plugin-hooks/hooks.json`) rewrites every `Agent`/`Task` call whose subagent is `general-purpose`, or untyped, into a call to `opencode-delegate:opencode-worker` on Haiku. The `prompt` and `description` (and any other input keys) are kept; the worker runs the task through `opencode run` using OpenCode's configured default model. Calls to `Explore`, `Plan`, `sdd-*` and any other named or plugin agent pass through untouched.
+
+The hook never blocks. It passes the call through unchanged when:
+
+- `OPENCODE_DELEGATE_ROUTE` is `0`, `false`, `no` or `off` (global opt-out; unset or empty means routing is on).
+- `OPENCODE_BIN` (default `opencode`) cannot be found, so Claude falls back to its own general-purpose agent.
+- The prompt contains the literal `[no-opencode]` (per-task opt-out).
+- `jq` is missing, or the hook input is not valid JSON.
+
+Because the hook is shipped in `plugin-hooks/`, not `hooks/` (which holds this repo's git hooks), it takes effect after the plugin is installed or refreshed.
 
 ## Requirements
 
@@ -100,11 +114,12 @@ The worker prefixes the task with a short preamble asking OpenCode to restore co
 
 ## Configuration
 
-| Variable       | Default    | Description                                          |
-| -------------- | ---------- | ---------------------------------------------------- |
-| `OPENCODE_BIN` | `opencode` | Path to the `opencode` executable used by the worker |
+| Variable                  | Default    | Description                                                                          |
+| ------------------------- | ---------- | ------------------------------------------------------------------------------------ |
+| `OPENCODE_BIN`            | `opencode` | Path to the `opencode` executable used by the worker and checked by the routing hook |
+| `OPENCODE_DELEGATE_ROUTE` | on         | Set to `0`, `false`, `no` or `off` to disable automatic routing (read by the hook)   |
 
-This is the only variable the plugin honors.
+These are the only variables the plugin honors.
 
 ## Development
 
