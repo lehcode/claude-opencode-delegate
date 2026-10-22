@@ -1,21 +1,21 @@
 ---
-name: claudelegate
+name: delegate
 description: Delegate coding or analysis work to another model through OpenCode (Grok, Kimi, GLM, Qwen, DeepSeek, MiMo, MiniMax, GPT… anything `opencode models` lists) while Claude stays the orchestrator. Use when the user says things like "use grok 4.7 via opencode to implement X", "ask kimi via opencode", "delegate this to glm", "get a second opinion from deepseek", "have opencode do it", or asks to run/compare several OpenCode models.
 ---
 
 # Delegating to OpenCode models
 
-From the main thread, delegate through the `opencode-worker` agent (spawned in the background) or the `opencode` slash command (`/opencode <model> -- <task>`), which spawns it. The worker is the only caller of the `opencode` MCP tools. The delegated model has its own tools (read, edit, shell), so it can implement code, not just answer. **You stay the orchestrator**: you hand over the task, and you review what comes back.
+From the main thread, delegate through the `opencode-worker` agent (spawned in the background) or the `claudelegate` slash command (`/claudelegate <model> -- <task>`), which spawns it. The worker is the only caller of the `opencode` MCP tools. The delegated model has its own tools (read, edit, shell), so it can implement code, not just answer. **You stay the orchestrator**: you hand over the task, and you review what comes back.
 
 ## Mechanism
 
 The `opencode` MCP server runs `opencode run` in the project and returns the reply, session id, token usage and git changes. The `opencode-worker` agent calls its `delegate` tool, verifies the git changes and tests, iterates at most twice with the same `session_id`, and reports. The main thread never calls `delegate` or `delegate_async`: `delegate` blocks it, async tasks are lost when the MCP server restarts, and a PreToolUse hook denies the call.
 
-| Method                        | When to use                                                |
-| ----------------------------- | ---------------------------------------------------------- |
-| `opencode-worker` agent       | Implementation, read-only exploration, parallel fan-out    |
-| `/opencode <model> -- <task>` | Simple delegation: spawns `opencode-worker`                |
-| MCP tools                     | Called by `opencode-worker` only, never by the main thread |
+| Method                            | When to use                                                |
+| --------------------------------- | ---------------------------------------------------------- |
+| `opencode-worker` agent           | Implementation, read-only exploration, parallel fan-out    |
+| `/claudelegate <model> -- <task>` | Simple delegation: spawns `opencode-worker`                |
+| MCP tools                         | Called by `opencode-worker` only, never by the main thread |
 
 ## Tools (used by the worker)
 
