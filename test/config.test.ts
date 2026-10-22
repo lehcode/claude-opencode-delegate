@@ -17,6 +17,10 @@ function loadModels(env: Record<string, string>): { d: string | null; hasRead: b
     ],
     { env: { ...base, ...env } },
   );
+  if (proc.exitCode !== 0) {
+    throw new Error(`spawn failed (exit ${proc.exitCode}): ${proc.stderr.toString().trim()}`);
+  }
+
   return JSON.parse(proc.stdout.toString());
 }
 
