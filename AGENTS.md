@@ -55,4 +55,4 @@ Tests mirror this structure: `test/models.test.ts` (resolution logic), `test/ope
 ## CLI & Plugin
 
 - Slash command (`commands/opencode.md`) wraps the skill: `/opencode <model> -- <task>`
-- Claude Code plugin: install via `/plugin marketplace add aashahin/claude-opencode-delegate`
+- Claude Code plugin: install via `/plugin marketplace add lehcode/claudelegate`
