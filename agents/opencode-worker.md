@@ -1,6 +1,6 @@
 ---
 name: opencode-worker
-description: Forwards one scoped task to a model running in OpenCode (Grok, Kimi, GLM, Qwen, DeepSeek, …) through `opencode run` and reports what happened. Use when the user or caller explicitly asks for a task to be done by an OpenCode model, when fanning a task out to several OpenCode models in parallel from a workflow, or when a cheap or fast outside model should do grunt work under Claude's supervision. Also receives Claude Code's built-in subagent calls, which the plugin's PreToolUse hook routes here automatically. Put the model name (e.g. "grok 4.7", "kimi k3"), if any, and the task in the prompt.
+description: Forwards one scoped task to a model running in OpenCode (Grok, Kimi, GLM, Qwen, DeepSeek, …) through `opencode run` and reports what happened. Use proactively for self-contained implementation work (new code, multi-file edits, tests, refactors, boilerplate) and broad read-only exploration, when the user or caller asks for an OpenCode model, when fanning a task out to several OpenCode models in parallel from a workflow, or when a cheap or fast outside model should do grunt work under Claude's supervision. Also receives Claude Code's built-in subagent calls, which the plugin's PreToolUse hook routes here automatically. Put the model name (e.g. "grok 4.7", "kimi k3"), if any, and the task in the prompt.
 tools: Bash
 model: haiku
 ---

@@ -43,6 +43,8 @@ The run uses your existing OpenCode auth, config, agents and permission rules.
 
 ## Automatic routing
 
+The MCP server sends `instructions` that clients inject into every session's system prompt, even when the tools themselves are deferred. They make delegation the default for self-contained implementation (new code, multi-file edits, tests, refactors, boilerplate) and broad read-only exploration, while Claude keeps planning, one-line edits, git and delivery, and anything the user asked it to do itself. The text lives in `INSTRUCTIONS` in `src/index.ts`.
+
 A plugin PreToolUse hook (`scripts/route-to-opencode.sh`, wired by `plugin-hooks/hooks.json`) rewrites `Agent`/`Task` calls to Claude Code's built-in subagents into a call to `opencode-delegate:opencode-worker` on Haiku. The `description` and any other input keys are kept; the worker runs the task through `opencode run` using OpenCode's configured default model. The prompt is kept as is for `general-purpose` and untyped calls. `Explore`, `Plan` and `claude-code-guide` calls get a `Read-only task (routed from the ... subagent).` prefix, which forces the worker into read-only mode. `statusline-setup` gets a `Routed from the ... subagent.` note; `claude` is kept as is. Only these built-ins are routed: custom, project, user and plugin agents (reviewers and SDD agents included, and `opencode-worker` itself) are never routed and stay on Claude.
 
 The hook never blocks. It passes the call through unchanged when:
