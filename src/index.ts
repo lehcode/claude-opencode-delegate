@@ -44,7 +44,7 @@ const delegateShape = {
     .string()
     .optional()
     .describe(
-      `opencode model: exact 'provider/model' id (e.g. 'xai/grok-4.7') or a loose name ('grok 4.7', 'kimi k3'). Append '#variant' for a reasoning variant. Omit to use the default: ${config.defaultModel ?? "opencode's default"} for normal tasks, ${config.readModel ?? config.defaultModel ?? "opencode's default"} (free) when auto is false.`,
+      `opencode model: exact 'provider/model' id (e.g. 'xai/grok-4.7') or a loose name ('grok 4.7', 'kimi k3'). Append '#variant' for a reasoning variant. Omit to use the default: ${config.defaultModel ?? "opencode's configured default model"}.`,
     ),
   cwd: z
     .string()
@@ -72,7 +72,7 @@ const delegateShape = {
     .boolean()
     .optional()
     .describe(
-      `Auto-approve tool permissions (edits, shell) that are not explicitly denied. Default: ${config.auto}. Set false for read-only work (reading files, reviews, questions); without a model that also selects the free read model.`,
+      `Auto-approve tool permissions (edits, shell) that are not explicitly denied. Default: ${config.auto}. Set false for read-only work (reading files, reviews, questions).`,
     ),
   thinking: z
     .boolean()

@@ -43,8 +43,7 @@ export async function delegate(
   const cwd = resolve(config.defaultCwd, input.cwd ?? ".");
   if (!existsSync(cwd)) throw new Error(`cwd does not exist: ${cwd}`);
   const auto = input.auto ?? config.auto;
-  const query =
-    input.model ?? (auto ? config.defaultModel : (config.readModel ?? config.defaultModel));
+  const query = input.model ?? config.defaultModel;
   const model = query ? await resolveModelOrThrow(query) : undefined;
   const files = input.files?.map((f) => (isAbsolute(f) ? f : resolve(cwd, f)));
 
