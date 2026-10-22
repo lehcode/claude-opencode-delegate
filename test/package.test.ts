@@ -38,9 +38,9 @@ describe("npm package", () => {
 
   test("bin points at an executable bun-shebang bundle", () => {
     const pkg = readJson("package.json");
-    expect(pkg.name).toBe("@lehcode/claude-opencode-delegate");
-    expect(pkg.bin["claude-opencode-delegate"]).toBe("dist/index.js");
-    const p = join(root, pkg.bin["claude-opencode-delegate"]);
+    expect(pkg.name).toBe("@lehcode/claudelegate");
+    expect(pkg.bin["claudelegate"]).toBe("dist/index.js");
+    const p = join(root, pkg.bin["claudelegate"]);
     accessSync(p, constants.X_OK);
     expect(readFileSync(p, "utf8").startsWith("#!/usr/bin/env bun\n")).toBe(true);
   });
@@ -65,7 +65,7 @@ describe("npm package", () => {
   test("opencode-worker has no edit tools", () => {
     const md = readFileSync(join(root, "agents/opencode-worker.md"), "utf8");
     const tools = /^tools: (.*)$/m.exec(md.split(/^---$/m)[1] ?? "")?.[1] ?? "";
-    const mcp = "mcp__plugin_opencode-delegate_opencode__";
+    const mcp = "mcp__plugin_claudelegate_opencode__";
     expect(tools.split(/,\s*/)).toEqual([
       "Read",
       "Grep",

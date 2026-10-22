@@ -2,7 +2,7 @@
   "mcpServers": {
     "opencode": {
       "command": "bunx",
-      "args": ["@lehcode/claude-opencode-delegate"],
+      "args": ["@lehcode/claudelegate"],
       "env": {
         "OPENCODE_DELEGATE_CWD": "/home/YOU/projects/my-app"
       }
