@@ -40,7 +40,7 @@ flowchart LR
     C -.->|feedback + session id, new worker| W
 ```
 
-The main thread spawns the background `opencode-worker` (Haiku, no edit tools). The worker resolves model and mode (read-only tasks pass `auto: false`), writes a self-contained brief, calls the MCP `delegate` tool, checks the git diff and runs tests or build, retries at most twice with the same session, otherwise reports reject. Its report has model, session id, changed files, verification and verdict, under 200 words. A timed-out run is not retried; the worker reports the session id so you can continue.
+The main thread spawns the background `opencode-worker` (Haiku, no edit tools). The worker resolves model and mode (read-only tasks pass `auto: false`), writes a self-contained brief, calls the MCP `delegate` tool, checks the git diff and runs tests or build, retries at most twice with the same session, otherwise reports reject. Its report has model, session id, changed files, verification and verdict, under 200 words. A timed-out run isn't retried; the worker reports the session id so you can continue.
 
 The main thread never calls `delegate` itself: a hook denies it. For each `delegate` call, the MCP server runs:
 
@@ -54,7 +54,7 @@ The run uses your existing OpenCode auth, config, agents and permission rules.
 
 Built-in subagents (`general-purpose`, `claude`, `Explore`, `Plan`, `claude-code-guide`, `statusline-setup`) are rewritten to `claudelegate:opencode-worker` on Haiku. `Explore`, `Plan` and `claude-code-guide` become read-only. Custom, project, user, plugin, reviewer and SDD agents stay on Claude.
 
-To opt out, set `OPENCODE_DELEGATE_ROUTE` to `0`, `false`, `no` or `off` (this also disables the main-thread guard), or put `[no-opencode]` in a single prompt. Routing is also skipped when `opencode` or `jq` cannot be found.
+To opt out, set `OPENCODE_DELEGATE_ROUTE` to `0`, `false`, `no` or `off` (this also disables the main-thread guard), or put `[no-opencode]` in a single prompt. Routing is also skipped when `opencode` or `jq` can't be found.
 
 A hook denies `delegate` and `delegate_async` calls from the main thread. Calls from inside a subagent pass because Claude Code sends `agent_id` only there. The MCP server sends `instructions` that make delegation the default.
 
@@ -62,7 +62,7 @@ A hook denies `delegate` and `delegate_async` calls from the main thread. Calls 
 
 | Mode            | When                                      | OpenCode flags               |
 | --------------- | ----------------------------------------- | ---------------------------- |
-| write (default) | Implement, fix, refactor                  | `--agent build --auto`       |
+| write (default) | Code, fix, refactor                       | `--agent build --auto`       |
 | read-only       | Review, question, summary, second opinion | `--agent plan` (no `--auto`) |
 
 | Input                    | Behaviour                                                                                      |
@@ -71,9 +71,9 @@ A hook denies `delegate` and `delegate_async` calls from the main thread. Calls 
 | exact `provider/model`   | Used as is                                                                                     |
 | loose name (`grok 4.7`)  | Resolved against `opencode models`; a named version must match exactly (4.7 never becomes 4.6) |
 | ambiguous loose name     | `delegate` returns the candidates and the worker picks the one that fits the task best         |
-| `provider/model#variant` | Variant preserved, e.g. `xai/grok-4.7#high`                                                    |
+| `provider/model#variant` | Variant preserved, for example `xai/grok-4.7#high`                                             |
 
-There are no built-in default models. Write mode passes `--agent build` because `default_agent` is often `plan`. Without `--auto` headless runs auto-reject permissions, which makes `plan` safe. The `</dev/null` redirect is required: with an open stdin pipe, `opencode run` waits forever.
+The plugin has no built-in default models. Write mode passes `--agent build` because `default_agent` is often `plan`. Without `--auto` headless runs reject permission requests automatically, which makes `plan` safe. The `</dev/null` redirect is required: with an open stdin pipe, `opencode run` waits forever.
 
 ## Continuing and parallel work
 
@@ -88,14 +88,14 @@ Continue by spawning `claudelegate:opencode-worker` again with the session id an
 | `OPENCODE_DELEGATE_DEFAULT_MODEL`       | unset       | Model when none is given; unset or empty means OpenCode's configured default                                                                         |
 | `OPENCODE_DELEGATE_AUTO`                | `true`      | Default for `auto`; `0`, `false`, `no`, `off` disable it                                                                                             |
 | `OPENCODE_DELEGATE_TIMEOUT`             | `1800`      | Seconds before a run is killed                                                                                                                       |
-| `OPENCODE_DELEGATE_MAX_OUTPUT`          | `40000`     | Maximum response characters returned                                                                                                                 |
+| `OPENCODE_DELEGATE_MAX_OUTPUT`          | `40000`     | Response character limit                                                                                                                             |
 | `OPENCODE_DELEGATE_THINKING`            | `true`      | Include reasoning blocks in output                                                                                                                   |
 | `OPENCODE_DELEGATE_CWD`                 | process cwd | Base working directory                                                                                                                               |
-| `OPENCODE_DELEGATE_PREFERRED_PROVIDERS` | none        | Comma-separated provider order when a model has several providers                                                                                    |
+| `OPENCODE_DELEGATE_PREFERRED_PROVIDERS` | none        | Comma-separated provider order when a model has more than one provider                                                                               |
 
 The variables are read by the MCP server unless noted. These are the only variables the plugin honours.
 
-## Standalone MCP server
+## Standalone server
 
 The MCP server is also published to npm as `@lehcode/claudelegate` (needs Bun). Register it in any MCP client with command `bunx` and args `["@lehcode/claudelegate"]`. See `examples/claude_desktop_config.json`.
 
@@ -113,13 +113,13 @@ Tests are fixture-based and need no running services.
 
 ### `src/`
 
-`src/index.ts` is the MCP server entry point, `dist/index.js` is a committed bundle built with `bun run build`, and CI fails if it is stale, so rebuild and commit `dist/` after changing `src/`. The plugin cache has no `node_modules`, which is why the bundle is committed.
+`src/index.ts` is the MCP server entry point, `dist/index.js` is a committed bundle built with `bun run build`, and CI fails if it's stale, so rebuild and commit `dist/` after changing `src/`. The plugin cache has no `node_modules`, which is why the bundle is committed.
 
 ## Releasing
 
 Automated by release-please (`.github/workflows/release.yml`). Conventional commits merged to `main` open or update a release PR that bumps `package.json`, `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` and writes `CHANGELOG.md`. Merging it creates the `vX.Y.Z` tag and GitHub release and publishes to npm via trusted publishing (OIDC, no token, provenance automatic). Never edit versions by hand.
 
-The first publish is manual (`npm publish --access public`), then add a trusted publisher on npmjs.com for repository `lehcode/claudelegate`, workflow `release.yml`. Optional: `RELEASE_PLEASE_TOKEN` secret (PAT or app token with `contents` and `pull-requests` write), because release PRs made with the default `GITHUB_TOKEN` do not trigger CI.
+The first publish is manual (`npm publish --access public`), then add a trusted publisher on npmjs.com for repository `lehcode/claudelegate`, workflow `release.yml`. Optional: `RELEASE_PLEASE_TOKEN` secret (PAT or app token with `contents` and `pull-requests` write), because release PRs made with the default `GITHUB_TOKEN` don't trigger CI.
 
 ## License
 
