@@ -5,50 +5,58 @@ description: Delegate coding or analysis work to another model through OpenCode 
 
 # Delegating to OpenCode models
 
-Use the `opencode` slash command (`/opencode <model> -- <task>`) or the `opencode-worker` agent to delegate tasks to an OpenCode model. The delegated model has its own tools (read, edit, shell), so it can implement code, not just answer. **You stay the orchestrator**: you plan, write the brief, and review what comes back.
+Use the `opencode` slash command (`/opencode <model> -- <task>`) or the `opencode-worker` agent to delegate tasks to an OpenCode model. The delegated model has its own tools (read, edit, shell), so it can implement code, not just answer. **You stay the orchestrator**: you hand over the task, and you review what comes back.
 
-## Invocation
+## Mechanism
 
-| Method                        | When to use                                            |
-| ----------------------------- | ------------------------------------------------------ |
-| `/opencode <model> -- <task>` | Simple delegation — fast, inline                       |
-| `opencode-worker` agent       | When you need supervision, verification, and iteration |
+The `opencode-worker` agent is the only mechanism. It is a thin forwarder that runs `opencode run --format json` directly and reports the session id, the reply and the changed files. It does not review, fix or retry.
+
+| Method                        | When to use                                 |
+| ----------------------------- | ------------------------------------------- |
+| `/opencode <model> -- <task>` | Simple delegation: spawns `opencode-worker` |
+| `opencode-worker` agent       | Workflows, parallel fan-out, iteration      |
+
+## Modes
+
+| Mode            | When                                      | OpenCode flags               |
+| --------------- | ----------------------------------------- | ---------------------------- |
+| write (default) | Implement, fix, refactor                  | `--agent build --auto`       |
+| read-only       | Review, question, summary, second opinion | `--agent plan` (no `--auto`) |
+
+Write mode passes `--agent build` because the project default agent may be `plan`. `--auto` approves permissions not explicitly denied; opencode rules set to "deny" are still enforced. In read-only mode, permission requests are rejected rather than approved.
 
 ## Picking the model
 
-- Pass what the user said: `model: "grok 4.7"`, `"kimi k3"`, `"xai grok 4.7"`. The server matches loose names. If a model is offered by several providers, the model maker's own provider wins over resellers like `opencode-go`, so "grok 4.7" goes to `xai/grok-4.7`. A provider word in the name overrides this ("opencode-go grok 4.7" → `opencode-go/…`). Include the provider word only when the user names one.
-- If you get an **ambiguous** error, the name matched several different models. Choose from the candidates it lists, and ask the user only if their intent is unclear.
-- For a reasoning variant, add `#variant`, e.g. `"xai/grok-4.7#high"`.
-- If the user names no model, omit `model`. Tasks that edit files get the default (`opencode-go/muse-spark-1.3-contributor`). Read-only tasks with `auto: false` get the free `opencode/muse-spark-1.3-contributor-free`. Use `auto: false` for reading or summarising files, answering questions about code, and reviews.
+- Pass what the user said: `grok 4.7`, `kimi k3`, `xai/grok-4.7`. The agent resolves a loose name against `opencode models` and requires an exact version match. If several distinct models match, it returns the candidate list instead of guessing; choose one, and ask the user only if their intent is unclear.
+- For a reasoning variant, add `#variant`, e.g. `xai/grok-4.7#high`.
+- If the user names no model, omit it. OpenCode then uses its configured default model.
 
-## Writing the brief (`prompt`)
+## Writing the task
 
-The delegated model **cannot see your conversation**. Write a self-contained brief:
+OpenCode restores its own context from engram (persistent memory), Graphiti and codegraph, so the brief can be short. Give:
 
-1. **Goal**: what to build or fix, and why.
-2. **Context**: the relevant files and paths, the existing patterns to follow, and the commands to build and test.
-3. **Constraints**: what not to touch, and the style to follow. Tell it not to commit unless you want a commit.
-4. **Done when**: the acceptance criteria, e.g. "`bun test` passes" or "prints X".
-5. **Report**: ask for a short summary of the changes and anything left undone.
+1. **Goal**: what to build or fix.
+2. **Constraints**: what not to touch. The agent already tells the model not to commit unless the task says so.
+3. **Done when**: acceptance criteria, e.g. "`bun test` passes".
 
-Use `files` to attach key files. Keep `cwd` at the project root unless the task is scoped to a subdirectory.
+Skip pasting file contents and long background; the model looks them up. Run from the project root.
 
-## Permissions
+## Continuing a session
 
-`auto` defaults to true. The model can edit files and run commands without asking, but opencode rules set to "deny" are still enforced. Pass `auto: false` for read-only work, such as a review, a second opinion or a question.
+The agent reports a session id. To give feedback or continue after a timeout, invoke `opencode-worker` again with that session id and precise feedback.
 
 ## After it returns: review, don't trust blindly
 
-The result reports status, `session_id`, token usage, the tools used, and **git changes**.
+The agent reports the model used, session id, exit status, changed files and OpenCode's own report.
 
 1. Read the diff (`git diff`) for the files it lists.
 2. Run the tests or build yourself.
-3. To fix something, either continue the **same session** by re-running with the `session_id`, giving precise feedback, or fix it yourself if that's quicker.
+3. To fix something, either continue the **same session** with feedback, or fix it yourself if that's quicker.
 4. Tell the user which model did what, and your verdict on it.
 
 ## Parallel and multi-model patterns
 
-- **Fan out**: spawn separate subagents for each model or subtask. Parallel tasks that edit files must use **separate git worktrees** (`git worktree add`) or non-overlapping files, because they share the directory.
-- **Compare**: give the same brief to 2–3 models in separate worktrees, then diff the results and pick or merge the best one.
-- **Second opinion**: `auto: false` with a prompt like "review this diff for bugs: …".
-- **Subagents / workflows**: the `opencode-worker` agent wraps this loop. Spawn it with the model and task in its prompt, e.g. "Use opencode model kimi k3 to add tests for src/foo.ts".
+- **Fan out**: spawn separate `opencode-worker` agents for each model or subtask. Parallel tasks that edit files must use **separate git worktrees** (`git worktree add`) or non-overlapping files, because they share the directory.
+- **Compare**: give the same task to 2–3 models in separate worktrees, then diff the results and pick or merge the best one.
+- **Second opinion**: read-only mode with a prompt like "review this diff for bugs: …".
+- **Subagents / workflows**: spawn `opencode-worker` with the model and task in its prompt, e.g. "Use opencode model kimi k3 to add tests for src/foo.ts".
