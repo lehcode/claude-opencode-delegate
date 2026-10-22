@@ -11,12 +11,12 @@ claude ▸ reads git diff, runs tests, reports which model did what and a verdic
 
 ## What ships
 
-| Surface | File                                | Role                                                                                                      |
-| ------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| Skill   | `skills/opencode-delegate/SKILL.md` | Model picking, brief template, review-after-return rules                                                  |
-| Agent   | `agents/opencode-worker.md`         | Thin forwarder (`tools: Bash`, `model: haiku`): one `opencode run`                                        |
-| Command | `commands/opencode.md`              | `/opencode <model> -- <task>`: splits on `--`, spawns `opencode-worker`                                   |
-| Hook    | `scripts/route-to-opencode.sh`      | PreToolUse hook (`plugin-hooks/hooks.json`): reroutes general-purpose subagent calls to `opencode-worker` |
+| Surface | File                                | Role                                                                                               |
+| ------- | ----------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Skill   | `skills/opencode-delegate/SKILL.md` | Model picking, brief template, review-after-return rules                                           |
+| Agent   | `agents/opencode-worker.md`         | Thin forwarder (`tools: Bash`, `model: haiku`): one `opencode run`                                 |
+| Command | `commands/opencode.md`              | `/opencode <model> -- <task>`: splits on `--`, spawns `opencode-worker`                            |
+| Hook    | `scripts/route-to-opencode.sh`      | PreToolUse hook (`plugin-hooks/hooks.json`): reroutes built-in subagent calls to `opencode-worker` |
 
 No MCP server, no build step, no `dist/`. Claude Desktop is not supported.
 
@@ -42,12 +42,13 @@ The run uses your existing OpenCode auth, config, agents and permission rules.
 
 ## Automatic routing
 
-A plugin PreToolUse hook (`scripts/route-to-opencode.sh`, wired by `plugin-hooks/hooks.json`) rewrites every `Agent`/`Task` call whose subagent is `general-purpose`, or untyped, into a call to `opencode-delegate:opencode-worker` on Haiku. The `prompt` and `description` (and any other input keys) are kept; the worker runs the task through `opencode run` using OpenCode's configured default model. Calls to `Explore`, `Plan`, `sdd-*` and any other named or plugin agent pass through untouched.
+A plugin PreToolUse hook (`scripts/route-to-opencode.sh`, wired by `plugin-hooks/hooks.json`) rewrites `Agent`/`Task` calls to Claude Code's built-in subagents into a call to `opencode-delegate:opencode-worker` on Haiku. The `description` and any other input keys are kept; the worker runs the task through `opencode run` using OpenCode's configured default model. The prompt is kept as is for `general-purpose` and untyped calls. `Explore`, `Plan` and `claude-code-guide` calls get a `Read-only task (routed from the ... subagent).` prefix, which forces the worker into read-only mode. `statusline-setup` gets a `Routed from the ... subagent.` note; `claude` is kept as is. Only these built-ins are routed: custom, project, user and plugin agents (reviewers and SDD agents included, and `opencode-worker` itself) are never routed and stay on Claude.
 
 The hook never blocks. It passes the call through unchanged when:
 
+- The subagent is not a built-in one (custom, project, user or plugin agent, including reviewers and SDD agents).
 - `OPENCODE_DELEGATE_ROUTE` is `0`, `false`, `no` or `off` (global opt-out; unset or empty means routing is on).
-- `OPENCODE_BIN` (default `opencode`) cannot be found, so Claude falls back to its own general-purpose agent.
+- `OPENCODE_BIN` (default `opencode`) cannot be found, so Claude keeps the original subagent.
 - The prompt contains the literal `[no-opencode]` (per-task opt-out).
 - `jq` is missing, or the hook input is not valid JSON.
 
