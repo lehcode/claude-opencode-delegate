@@ -39,7 +39,7 @@ Write mode passes `--agent build` because the project default agent may be `plan
 
 ## Picking the model
 
-- Pass what the user said: `grok 4.7`, `kimi k3`, `xai/grok-4.7`. The agent resolves a loose name against `opencode models` and requires an exact version match. If several models match, the worker picks the best candidate that fits the instructions (a named provider wins); name the exact `provider/model` when the choice matters.
+- Pass what the user said: `grok 4.7`, `kimi k3`, `xai/grok-4.7`. The `delegate` tool resolves a loose name against `opencode models` and requires an exact version match. If several models match, it returns an ambiguous error with the candidates and the worker picks the best candidate that fits the instructions (a named provider wins); name the exact `provider/model` when the choice matters.
 - For a reasoning variant, add `#variant`, e.g. `xai/grok-4.7#high`.
 - If the user names no model, omit it. OpenCode then uses its configured default model.
 
