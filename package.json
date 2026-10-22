@@ -1,5 +1,5 @@
 {
-  "name": "@lehcode/claude-opencode-delegate",
+  "name": "@lehcode/claudelegate",
   "version": "0.1.0",
   "description": "Claude Code plugin — delegate tasks to any OpenCode model (Grok, Kimi, GLM, Qwen, DeepSeek…) via agent activation, while Claude stays the orchestrator.",
   "type": "module",
@@ -7,11 +7,11 @@
   "author": "aashahin",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lehcode/claude-opencode-delegate.git"
+    "url": "git+https://github.com/lehcode/claudelegate.git"
   },
-  "homepage": "https://github.com/lehcode/claude-opencode-delegate#readme",
+  "homepage": "https://github.com/lehcode/claudelegate#readme",
   "bugs": {
-    "url": "https://github.com/lehcode/claude-opencode-delegate/issues"
+    "url": "https://github.com/lehcode/claudelegate/issues"
   },
   "keywords": [
     "claude",
@@ -22,7 +22,7 @@
     "mcp"
   ],
   "bin": {
-    "claude-opencode-delegate": "dist/index.js"
+    "claudelegate": "dist/index.js"
   },
   "files": [
     "dist",

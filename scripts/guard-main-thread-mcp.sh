@@ -27,7 +27,7 @@ shopt -u nocasematch
 # 4. Only this plugin's delegate / delegate_async tools.
 tool=$(printf '%s' "$input" | jq -r '.tool_name // empty')
 case "$tool" in
-  mcp__plugin_opencode-delegate_opencode__delegate | mcp__plugin_opencode-delegate_opencode__delegate_async | \
+  mcp__plugin_claudelegate_opencode__delegate | mcp__plugin_claudelegate_opencode__delegate_async | \
     mcp__opencode__delegate | mcp__opencode__delegate_async) ;;
   *) pass ;;
 esac
@@ -40,6 +40,6 @@ jq -cn '{
   hookSpecificOutput: {
     hookEventName: "PreToolUse",
     permissionDecision: "deny",
-    permissionDecisionReason: "The main thread must not call the opencode delegate tools: they block it, and async tasks are lost when the MCP server restarts. Spawn the `opencode-delegate:opencode-worker` subagent in the background (Agent tool, run_in_background: true) with the model, mode and task in its prompt; only the worker calls delegate."
+    permissionDecisionReason: "The main thread must not call the opencode delegate tools: they block it, and async tasks are lost when the MCP server restarts. Spawn the `claudelegate:opencode-worker` subagent in the background (Agent tool, run_in_background: true) with the model, mode and task in its prompt; only the worker calls delegate."
   }
 }'
