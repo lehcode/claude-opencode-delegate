@@ -47,4 +47,4 @@ Call chain inside `src/`: `delegate.ts` → `models.resolveModelOrThrow` (`listM
 ## Keeping docs and manifests in sync
 
 - Defaults and env vars are defined in `src/config.ts` and documented in the README env table and the skill — update all three together.
-- Version `0.1.0` appears in `package.json`, `plugin.json` and `marketplace.json` — bump all three.
+- release-please bumps the version in `package.json`, `plugin.json` and `marketplace.json`; never edit versions by hand.

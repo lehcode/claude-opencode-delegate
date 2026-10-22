@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "opencode": {
-      "command": "/home/YOU/.bun/bin/bun",
-      "args": ["/home/YOU/path/to/claude-opencode-delegate/dist/index.js"],
+      "command": "bunx",
+      "args": ["@lehcode/claude-opencode-delegate"],
       "env": {
         "OPENCODE_DELEGATE_CWD": "/home/YOU/projects/my-app",
         "OPENCODE_DELEGATE_DEFAULT_MODEL": "opencode-go/muse-spark-1.3-contributor",
