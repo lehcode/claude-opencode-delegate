@@ -5,47 +5,50 @@ A Claude Code plugin that delegates scoped tasks to any model available in your 
 ```text
 you    ▸ /opencode grok 4.7 -- add input validation to the signup form
 claude ▸ spawns opencode-worker (model: grok 4.7, mode: write)
-worker ▸ opencode run … → session ses_abc, 3 files changed, report
+worker ▸ MCP delegate → session ses_abc, 3 files changed, report
 claude ▸ reads git diff, runs tests, reports which model did what and a verdict
 ```
 
 ## What ships
 
-| Surface | File                                        | Role                                                                                               |
-| ------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Skill   | `skills/opencode-delegate/SKILL.md`         | Model picking, brief template, review-after-return rules                                           |
-| Agent   | `agents/opencode-worker.md`                 | Thin forwarder (`tools: Bash`, `model: haiku`): one `opencode run`                                 |
-| Command | `commands/opencode.md`                      | `/opencode <model> -- <task>`: splits on `--`, spawns `opencode-worker`                            |
-| Hook    | `scripts/route-to-opencode.sh`              | PreToolUse hook (`plugin-hooks/hooks.json`): reroutes built-in subagent calls to `opencode-worker` |
-| MCP     | `plugin.json` `mcpServers`, `dist/index.js` | `opencode` MCP server (bundled from `src/index.ts`): `delegate` and friends as main-thread tools   |
+| Surface | File                                        | Role                                                                                                       |
+| ------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Skill   | `skills/opencode-delegate/SKILL.md`         | Model picking, brief template, review-after-return rules                                                   |
+| Agent   | `agents/opencode-worker.md`                 | Supervisor (`model: haiku`, `background: true`, all tools): calls MCP `delegate`, verifies, iterates       |
+| Command | `commands/opencode.md`                      | `/opencode <model> -- <task>`: splits on `--`, spawns `opencode-worker`                                    |
+| Hook    | `scripts/route-to-opencode.sh`              | PreToolUse hook (`plugin-hooks/hooks.json`): reroutes built-in subagent calls to `opencode-worker`         |
+| Hook    | `scripts/guard-main-thread-mcp.sh`          | PreToolUse hook (`plugin-hooks/hooks.json`): denies `delegate`/`delegate_async` calls from the main thread |
+| MCP     | `plugin.json` `mcpServers`, `dist/index.js` | `opencode` MCP server (bundled from `src/index.ts`): `delegate` and friends, called by `opencode-worker`   |
 
-The MCP server exposes seven tools: `delegate` (run and wait), `delegate_async` (background run, returns a task id), `task_result`, `task_list`, `task_cancel`, `list_models` and `list_sessions`. Claude can call `delegate` directly for implementation work without launching an agent. `dist/index.js` is a committed bundle (the installed plugin cache has no `node_modules`); rebuild it with `bun run build` after changing `src/`, CI fails if it is stale. Claude Desktop is not supported.
+The MCP server exposes seven tools: `delegate` (run and wait), `delegate_async` (background run, returns a task id), `task_result`, `task_list`, `task_cancel`, `list_models` and `list_sessions`. Only `opencode-worker` calls them: the main thread spawns the worker in the background, because `delegate` blocks the main thread and `delegate_async` tasks are lost when `/reload-plugins` restarts the server. A PreToolUse hook denies `delegate` and `delegate_async` calls made without an `agent_id` (the main thread). `dist/index.js` is a committed bundle (the installed plugin cache has no `node_modules`); rebuild it with `bun run build` after changing `src/`, CI fails if it is stale. Claude Desktop is not supported.
 
 ## How it works
 
 ```mermaid
 flowchart LR
     C[Claude] -->|model + task + mode| W[opencode-worker]
-    W -->|one command, stdin closed| O["opencode run --format json"]
-    O -->|JSON events| W
-    W -->|"git status / diff --stat, report ≤150 words"| C
+    W -->|brief| M["MCP delegate"]
+    M -->|opencode run, JSON events| W
+    W -->|"verifies git changes + tests, iterates ≤2, report <200 words"| C
     C -->|reviews diff, runs tests| C
-    C -.->|feedback + session id| W
+    C -.->|feedback + session id, new worker| W
 ```
 
-The worker resolves the model, builds the prompt, runs a single command, checks `git status --short` and `git diff --stat`, and reports the model, session id, exit status, changed files and OpenCode's own report. It never reviews, fixes or retries; iteration means Claude invokes it again with the session id.
+The worker resolves the model and mode (read-only tasks pass `auto: false`), gathers context, writes a self-contained brief and calls the MCP `delegate` tool. It then reads the git changes, runs the tests or build, iterates at most twice with the same `session_id`, and reports the model, session id, changed files, verification and a verdict in under 200 words. The main thread never calls `delegate` itself; to fix something after the report, spawn a worker again with the session id.
+
+The MCP server runs this command:
 
 ```bash
-${OPENCODE_BIN:-opencode} run --format json --agent build --auto [-m provider/model[#variant]] [--session <id>] --title "<title>" -- "<prompt>" </dev/null
+opencode run --format json --agent build --auto [-m provider/model[#variant]] [--session <id>] --title "<title>" -- "<prompt>" </dev/null
 ```
 
 The run uses your existing OpenCode auth, config, agents and permission rules.
 
 ## Automatic routing
 
-The MCP server sends `instructions` that clients inject into every session's system prompt, even when the tools are deferred; they make delegation the default for self-contained implementation and broad read-only exploration, and define delegating as spawning `opencode-worker` subagents in the background (one per independent task, parallel when files do not overlap) so the main thread is never blocked; the `delegate` tool blocks until OpenCode finishes, so it is used only on request or when no Agent tool is available; Claude keeps planning, one-line edits, git and delivery, and anything the user asked it to do itself; the text lives in `INSTRUCTIONS` in `src/index.ts`.
+The MCP server sends `instructions` that clients inject into every session's system prompt, even when the tools are deferred; they make delegation the default for self-contained implementation and broad read-only exploration, and define delegating as spawning `opencode-worker` subagents in the background (one per independent task, parallel when files do not overlap) so the main thread is never blocked; the `delegate`, `delegate_async` and `task_*` tools belong to the worker and the main thread never calls them; Claude keeps planning, one-line edits, git and delivery, and anything the user asked it to do itself; the text lives in `INSTRUCTIONS` in `src/index.ts`.
 
-A plugin PreToolUse hook (`scripts/route-to-opencode.sh`, wired by `plugin-hooks/hooks.json`) rewrites `Agent`/`Task` calls to Claude Code's built-in subagents into a call to `opencode-delegate:opencode-worker` on Haiku. The `description` and any other input keys are kept; the worker runs the task through `opencode run` using OpenCode's configured default model. The prompt is kept as is for `general-purpose` and untyped calls. `Explore`, `Plan` and `claude-code-guide` calls get a `Read-only task (routed from the ... subagent).` prefix, which forces the worker into read-only mode. `statusline-setup` gets a `Routed from the ... subagent.` note; `claude` is kept as is. Only these built-ins are routed: custom, project, user and plugin agents (reviewers and SDD agents included, and `opencode-worker` itself) are never routed and stay on Claude.
+A plugin PreToolUse hook (`scripts/route-to-opencode.sh`, wired by `plugin-hooks/hooks.json`) rewrites `Agent`/`Task` calls to Claude Code's built-in subagents into a call to `opencode-delegate:opencode-worker` on Haiku. The `description` and any other input keys are kept; the worker runs the task through MCP `delegate` using OpenCode's configured default model. The prompt is kept as is for `general-purpose` and untyped calls. `Explore`, `Plan` and `claude-code-guide` calls get a `Read-only task (routed from the ... subagent).` prefix, which forces the worker into read-only mode. `statusline-setup` gets a `Routed from the ... subagent.` note; `claude` is kept as is. Only these built-ins are routed: custom, project, user and plugin agents (reviewers and SDD agents included, and `opencode-worker` itself) are never routed and stay on Claude.
 
 The hook never blocks. It passes the call through unchanged when:
 
@@ -55,12 +58,14 @@ The hook never blocks. It passes the call through unchanged when:
 - The prompt contains the literal `[no-opencode]` (per-task opt-out).
 - `jq` is missing, or the hook input is not valid JSON.
 
-Because the hook is shipped in `plugin-hooks/`, not `hooks/` (which holds this repo's git hooks), it takes effect after the plugin is installed or refreshed.
+A second PreToolUse hook (`scripts/guard-main-thread-mcp.sh`) denies `delegate` and `delegate_async` calls (tool names `mcp__plugin_opencode-delegate_opencode__*` and `mcp__opencode__*`) made from the main thread, with a reason telling Claude to spawn `opencode-delegate:opencode-worker` in the background. Claude Code puts `agent_id` in the hook input only inside a subagent, so calls from the worker pass through. It passes through as well when `OPENCODE_DELEGATE_ROUTE` is falsy, `jq` is missing, or the input is not valid JSON.
+
+Because the hooks are shipped in `plugin-hooks/`, not `hooks/` (which holds this repo's git hooks), they take effect after the plugin is installed or refreshed.
 
 ## Requirements
 
 - [OpenCode](https://opencode.ai) v2+ with at least one provider configured (`opencode models` lists something). Behaviour documented here was verified on 2.1.2.
-- `jq` on `PATH` (the worker parses the JSON event stream with it).
+- `jq` on `PATH` (the hooks parse JSON with it).
 - `git` (changed-file detection).
 
 ## Install
@@ -116,16 +121,12 @@ The worker reports a session id. To give feedback, or to continue after a timeou
 
 Spawn one `opencode-worker` per model or subtask. Writers share the working directory, so parallel edits need separate git worktrees (`git worktree add`) or non-overlapping files. To compare models, give the same task to each in its own worktree, then diff the results.
 
-## Context restore (optional)
-
-The worker prefixes the task with a short preamble asking OpenCode to restore context itself from engram (`mem_context`, `mem_search`), Graphiti memory and `codegraph_explore`, to stay in scope, not to commit unless told to, and to end with a short report. This works only if those MCP servers are configured in your OpenCode, and it is advisory: models do not always follow it. Without them the preamble is harmless and the task brief should carry the needed context.
-
 ## Configuration
 
-| Variable                  | Default    | Description                                                                          |
-| ------------------------- | ---------- | ------------------------------------------------------------------------------------ |
-| `OPENCODE_BIN`            | `opencode` | Path to the `opencode` executable used by the worker and checked by the routing hook |
-| `OPENCODE_DELEGATE_ROUTE` | on         | Set to `0`, `false`, `no` or `off` to disable automatic routing (read by the hook)   |
+| Variable                  | Default    | Description                                                                                                    |
+| ------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------- |
+| `OPENCODE_BIN`            | `opencode` | Path to the `opencode` executable used by the routing hook and the MCP server                                  |
+| `OPENCODE_DELEGATE_ROUTE` | on         | Set to `0`, `false`, `no` or `off` to disable automatic routing and the main-thread guard (read by both hooks) |
 
 These are the only variables the plugin honors.
 
@@ -143,7 +144,7 @@ git config core.hooksPath hooks/   # pre-commit (staged lint/format), pre-push (
 
 ### MCP server and library (`src/`)
 
-`src/index.ts` is the MCP server entry point (`bun run start`, bundled to `dist/index.js` by `bun run build`); it builds on the `delegate`, `resolveModel`, `buildArgs` and `EventCollector` modules, which also document how `opencode run` is invoked and its JSON stream parsed. Changing `src/` changes the MCP tools, so rebuild and commit `dist/`. The provider preference (direct provider over an aggregator, `OPENCODE_DELEGATE_PREFERRED_PROVIDERS` first) applies to the MCP server only, not to the worker. Variables read by `src/config.ts`:
+`src/index.ts` is the MCP server entry point (`bun run start`, bundled to `dist/index.js` by `bun run build`); it builds on the `delegate`, `resolveModel`, `buildArgs` and `EventCollector` modules, which also document how `opencode run` is invoked and its JSON stream parsed. Changing `src/` changes the MCP tools, so rebuild and commit `dist/`. The provider preference (direct provider over an aggregator, `OPENCODE_DELEGATE_PREFERRED_PROVIDERS` first) applies to model resolution inside the MCP server, so it also covers the worker. Variables read by `src/config.ts`:
 
 | Variable                                | Default       | Description                                                                                             |
 | --------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------- |

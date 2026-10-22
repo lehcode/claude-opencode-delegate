@@ -90,7 +90,8 @@ describe.each(["src/index.ts", "dist/index.js"])("MCP server (%s)", (entry) => {
     expect(instructions).toMatch(/review/i);
     expect(instructions).toContain("opencode-delegate:opencode-worker");
     expect(instructions).toMatch(/background/i);
-    expect(instructions).toMatch(/blocks the main thread/i);
+    expect(instructions).toMatch(/never call/i);
+    expect(instructions).not.toMatch(/only when the user asks/i);
   }, 15000);
 });
 
