@@ -21527,8 +21527,8 @@ function int2(v, dflt) {
 }
 var config2 = {
   bin: resolveBin(),
-  defaultModel: model(process.env.OPENCODE_DELEGATE_DEFAULT_MODEL, "opencode-go/muse-spark-1.3-contributor"),
-  readModel: model(process.env.OPENCODE_DELEGATE_READ_MODEL, "opencode/muse-spark-1.3-contributor-free"),
+  defaultModel: model(process.env.OPENCODE_DELEGATE_DEFAULT_MODEL, undefined),
+  readModel: model(process.env.OPENCODE_DELEGATE_READ_MODEL, undefined),
   auto: bool(process.env.OPENCODE_DELEGATE_AUTO, true),
   timeoutSec: int2(process.env.OPENCODE_DELEGATE_TIMEOUT, 1800),
   maxOutputChars: int2(process.env.OPENCODE_DELEGATE_MAX_OUTPUT, 40000),
