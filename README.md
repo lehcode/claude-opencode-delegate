@@ -3,7 +3,7 @@
 A Claude Code plugin that hands scoped coding work to any model in your OpenCode install (Grok, Kimi, GLM, Qwen, DeepSeek, and others) so Claude plans and reviews while a cheaper model writes the code.
 
 ```text
-you    ▸ /claudelegate grok 4.7 -- add input validation to the signup form
+you    ▸ /opencode grok 4.7 -- add input validation to the signup form
 claude ▸ spawns opencode-worker (model: grok 4.7, mode: write)
 worker ▸ MCP delegate → session ses_abc, 3 files changed, report
 claude ▸ reads git diff, runs tests, reports which model did what and a verdict
@@ -26,7 +26,7 @@ To use a local clone, add it as a directory marketplace: `/plugin marketplace ad
 
 ## Usage
 
-Say "Use kimi k3 via opencode to add tests for `src/date.ts`." Or use the slash command: `/claudelegate <model> -- <task>`. For example: `/claudelegate deepseek v4 flash -- write unit tests for src/date.ts`. You can also spawn the `claudelegate:opencode-worker` agent from a workflow with the model and task in its prompt. Claude does this on its own for ordinary implementation work.
+Say "Use kimi k3 via opencode to add tests for `src/date.ts`." Or use the slash command: `/opencode <model> -- <task>`. For example: `/opencode deepseek v4 flash -- write unit tests for src/date.ts`. You can also spawn the `claudelegate:opencode-worker` agent from a workflow with the model and task in its prompt. Claude does this on its own for ordinary implementation work.
 
 ## How it works
 
