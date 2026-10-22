@@ -5,10 +5,8 @@
 
 ### ⚠ BREAKING CHANGES
 
-* the slash command is /opencode again (/claudelegate:opencode), not /claudelegate.
-* /opencode is now /claudelegate; the skill is now
-* the skill is now claudelegate (skills/claudelegate); invoke it as claudelegate:claudelegate.
 * the plugin installs as claudelegate@claudelegate (was opencode-delegate@claude-opencode-delegate); MCP tools are mcp__plugin_claudelegate_opencode__* (was mcp__plugin_opencode-delegate_opencode__*); the worker is claudelegate:opencode-worker; the npm package and bin are @lehcode/claudelegate and claudelegate. Update permission allowlists.
+* the skill is now delegate, invoked as claudelegate:delegate (was opencode-delegate); the slash command keeps its name and is invoked as /claudelegate:opencode.
 * **config:** drop OPENCODE_DELEGATE_READ_MODEL in favour of OPENCODE_DELEGATE_DEFAULT_MODEL
 
 ### Features
