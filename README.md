@@ -1,126 +1,139 @@
 # claude-opencode-delegate
 
-Give Claude **every model in your [OpenCode](https://opencode.ai) install** as a delegate: Grok,
-Kimi, GLM, Qwen, DeepSeek, MiMo, MiniMax, and any other provider you've connected. Claude stays
-the orchestrator. It plans the work, briefs the other model, reviews the diff, and runs the tests.
+A Claude Code plugin that delegates scoped tasks to any model available in your [OpenCode](https://opencode.ai) install (Grok, Kimi, GLM, Qwen, DeepSeek, MiMo, MiniMax, …). Claude stays the orchestrator: it hands over the task, then reviews the diff and runs the tests.
 
-```
-you ▸ use grok 4.7 from xAI in opencode to implement the CSV export, you review it
-
-claude ▸ spawn opencode-worker subagent with model "grok 4.7" and brief
-
-opencode ▸ grok-4.7 edits src/export.ts, runs tests …
-
-claude ▸ reviews git diff, runs `bun test`, and reports back
+```text
+you    ▸ /opencode grok 4.7 -- add input validation to the signup form
+claude ▸ spawns opencode-worker (model: grok 4.7, mode: write)
+worker ▸ opencode run … → session ses_abc, 3 files changed, report
+claude ▸ reads git diff, runs tests, reports which model did what and a verdict
 ```
 
-It works in:
+## What ships
 
-- **Claude Code** (CLI, IDE, desktop): you can ask directly, use `/opencode`, use the
-  `opencode-delegate` skill, or use the `opencode-worker` agent.
-- **Claude Desktop** on Linux, macOS, or Windows: use the skill/agent files directly or run
-  OpenCode from the terminal.
+| Surface | File                                | Role                                                                    |
+| ------- | ----------------------------------- | ----------------------------------------------------------------------- |
+| Skill   | `skills/opencode-delegate/SKILL.md` | Model picking, brief template, review-after-return rules                |
+| Agent   | `agents/opencode-worker.md`         | Thin forwarder (`tools: Bash`, `model: haiku`): one `opencode run`      |
+| Command | `commands/opencode.md`              | `/opencode <model> -- <task>`: splits on `--`, spawns `opencode-worker` |
+
+No MCP server, no build step, no `dist/`. Claude Desktop is not supported.
 
 ## How it works
 
-```
-Claude Code / Claude Desktop / subagent / workflow
-        │  agent activation (skill, slash-command, subagent)
-        ▼
-opencode-delegate skill/agent files
-        │  guide Claude
-        ▼
-opencode-worker agent (Bash only)
-        │  runs one command
-        ▼
-opencode run --format json --agent build --auto [-m <provider/model>] [--session …] -- "<prompt>"
+```mermaid
+flowchart LR
+    C[Claude] -->|model + task + mode| W[opencode-worker]
+    W -->|one command, stdin closed| O["opencode run --format json"]
+    O -->|JSON events| W
+    W -->|"git status / diff --stat, report ≤150 words"| C
+    C -->|reviews diff, runs tests| C
+    C -.->|feedback + session id| W
 ```
 
-The `opencode-worker` agent is a thin forwarder: it resolves the model, prefixes the task with a short memory-restore preamble (OpenCode restores its own context from engram, Graphiti and codegraph), runs `opencode run` directly, and reports the session id, the reply and the changed files. Write tasks use `--agent build --auto`; read-only tasks use `--agent plan` without `--auto`. No MCP server, no stdio transport, no bun bundler.
+The worker resolves the model, builds the prompt, runs a single command, checks `git status --short` and `git diff --stat`, and reports the model, session id, exit status, changed files and OpenCode's own report. It never reviews, fixes or retries; iteration means Claude invokes it again with the session id.
 
-The `opencode` CLI uses your existing OpenCode auth, config, agents, and permission rules. It
-does not use a separate API.
+```bash
+${OPENCODE_BIN:-opencode} run --format json --agent build --auto [-m provider/model[#variant]] [--session <id>] --title "<title>" -- "<prompt>" </dev/null
+```
+
+The run uses your existing OpenCode auth, config, agents and permission rules.
 
 ## Requirements
 
-- [OpenCode](https://opencode.ai) v2+ with at least one provider set up. Check that
-  `opencode models` lists something.
+- [OpenCode](https://opencode.ai) v2+ with at least one provider configured (`opencode models` lists something). Behaviour documented here was verified on 2.1.2.
+- `jq` on `PATH` (the worker parses the JSON event stream with it).
+- `git` (changed-file detection).
 
 ## Install
 
-### Claude Code: plugin (recommended)
-
 ```text
-/plugin marketplace add aashahin/claude-opencode-delegate
+/plugin marketplace add lehcode/claude-opencode-delegate
 /plugin install opencode-delegate@claude-opencode-delegate
 ```
 
-This gives you the **opencode-delegate** skill, the **opencode-worker** agent, and the
-**/opencode** command.
+To use a local clone, add it as a directory marketplace: `/plugin marketplace add /path/to/clone`. After pulling changes, refresh the plugin (`/plugin` → update, or reinstall).
 
 ## Usage
 
-Talk to Claude normally:
+Three entry points, all ending in the same `opencode-worker`:
 
-- _"Use grok 4.7 from xAI in opencode to implement pagination for /api/users. You review it."_
-- _"Ask kimi k3 via opencode for a second opinion on this diff, read-only."_
-- _"Have glm 5.3 and qwen 3.8 max both implement the parser in separate worktrees, then pick the better one."_
-- `/opencode deepseek v4 flash -- write unit tests for src/date.ts`
-- _"Spawn opencode-worker subagents: minimax m3 does the docs, kimi k3 does the tests."_
+- **Natural language:** "Use kimi k3 via opencode to add tests for `src/date.ts`."
+- **Slash command:** `/opencode deepseek v4 flash -- write unit tests for src/date.ts`
+- **Agent:** spawn `opencode-worker` from a subagent or workflow with the model and task in its prompt.
 
-### Model names
+### Modes
 
-You can use exact ids (`opencode-go/grok-4.7`) or loose names (`grok 4.7`, `kimi k3`, `deepseek v4 flash`).
+| Mode            | When                                      | OpenCode flags               |
+| --------------- | ----------------------------------------- | ---------------------------- |
+| write (default) | Implement, fix, refactor                  | `--agent build --auto`       |
+| read-only       | Review, question, summary, second opinion | `--agent plan` (no `--auto`) |
 
-- A loose name is resolved by the `opencode-worker` agent against the output of `opencode models`, to a single exact `provider/model`.
-- A version you name must match exactly, so `grok 4.7` never silently becomes 4.6.
-- If a name matches several different models, you get a list of candidates instead of a guess. For example, `mimo` matches several MiMo models.
-- Add `#variant` for a reasoning variant: `xai/grok-4.7#high`.
-- If you don't name a model, `-m` is omitted and OpenCode uses its own configured default model.
+- Write mode passes `--agent build` because OpenCode's `default_agent` is commonly `plan`.
+- `--auto` approves permissions not explicitly denied; rules set to `deny` are still enforced.
+- Without `--auto`, a headless run auto-rejects permission requests and continues, which is what makes `plan` safe for read-only work.
+- `</dev/null` is mandatory: with an open stdin pipe, `opencode run` waits forever and never creates a session.
 
-### Slash command
+### Models
 
-`/opencode <model> -- <task>` — delegate to an OpenCode model. The slash command passes the task to an `opencode-worker` subagent and waits for the result, then reviews the diff and runs the tests.
+| Input                    | Behaviour                                                                                                        |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| none                     | `-m` omitted; OpenCode uses its configured default model (e.g. `"model"` in `~/.config/opencode/opencode.jsonc`) |
+| exact `provider/model`   | Used as is                                                                                                       |
+| loose name (`grok 4.7`)  | Resolved against `opencode models`; a named version must match exactly (4.7 never becomes 4.6)                   |
+| ambiguous loose name     | Candidate list returned to Claude instead of a guess                                                             |
+| `provider/model#variant` | Variant preserved, e.g. `xai/grok-4.7#high`                                                                      |
 
-### Agent
+There are no built-in default models.
 
-The `opencode-worker` agent is a ready-made forwarder. Give it a model and task — it runs `opencode run` and reports the session id, the reply and the changed files. It does not review or retry; Claude reviews, and iterates by invoking the agent again with the session id and feedback.
+### Continuing a session
 
-### Permissions
+The worker reports a session id. To give feedback, or to continue after a timeout, invoke `opencode-worker` again with that session id and precise feedback. A run is expected to finish within about 10 minutes (Bash tool timeout maximum is 600000 ms).
 
-Write tasks run with `--agent build --auto`. The delegated model can edit files and run commands without asking, but any rule you set to `deny` in your OpenCode config is still enforced. Read-only tasks (reviews, questions, second opinions) run with `--agent plan` and without `--auto`, so permission requests are rejected. Claude is told to review every change it gets back.
+### Parallel work
 
-### Using it from workflows
+Spawn one `opencode-worker` per model or subtask. Writers share the working directory, so parallel edits need separate git worktrees (`git worktree add`) or non-overlapping files. To compare models, give the same task to each in its own worktree, then diff the results.
 
-Workflow `agent()` calls and subagents can use the `opencode-worker` agent directly. If you fan out
-tasks that edit files, give each one its own `git worktree` so they don't conflict.
+## Context restore (optional)
 
-## Configuration (env vars)
+The worker prefixes the task with a short preamble asking OpenCode to restore context itself from engram (`mem_context`, `mem_search`), Graphiti memory and `codegraph_explore`, to stay in scope, not to commit unless told to, and to end with a short report. This works only if those MCP servers are configured in your OpenCode, and it is advisory: models do not always follow it. Without them the preamble is harmless and the task brief should carry the needed context.
 
-The `opencode-worker` agent honors only `OPENCODE_BIN`. The other variables are read only by the `src/` library.
+## Configuration
 
-| Variable                                | Default                                    | Description                                                                                                  |
-| --------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
-| `OPENCODE_BIN`                          | auto-detected                              | Path to the `opencode` executable.                                                                           |
-| `OPENCODE_DELEGATE_DEFAULT_MODEL`       | `opencode-go/muse-spark-1.3-contributor`   | Model used when `model` is omitted. Set it to `""` to use opencode's own default.                            |
-| `OPENCODE_DELEGATE_READ_MODEL`          | `opencode/muse-spark-1.3-contributor-free` | Model used when `model` is omitted and `auto` is false (reading files, reviews, questions). Free by default. |
-| `OPENCODE_DELEGATE_AUTO`                | `true`                                     | Default for `auto`.                                                                                          |
-| `OPENCODE_DELEGATE_TIMEOUT`             | `1800`                                     | Seconds before a run is killed.                                                                              |
-| `OPENCODE_DELEGATE_MAX_OUTPUT`          | `40000`                                    | Maximum number of response characters returned to Claude.                                                    |
-| `OPENCODE_DELEGATE_CWD`                 | the server's cwd                           | Base directory for `cwd`.                                                                                    |
-| `OPENCODE_DELEGATE_PREFERRED_PROVIDERS` | _(none)_                                   | Comma-separated provider order used when a model is offered by several providers, e.g. `xai,opencode-go`.    |
-| `OPENCODE_DELEGATE_THINKING`            | `true`                                     | Include `--thinking` so reasoning/thinking blocks appear in output.                                          |
+| Variable       | Default    | Description                                          |
+| -------------- | ---------- | ---------------------------------------------------- |
+| `OPENCODE_BIN` | `opencode` | Path to the `opencode` executable used by the worker |
+
+This is the only variable the plugin honors.
 
 ## Development
 
 ```bash
 bun install
-bun test            # unit tests (fixtures captured from real `opencode run --format json`)
-bun run typecheck
-bun run lint
-bun run fmt
+bun run verify                     # typecheck + test + lint + format
+bun test test/models.test.ts       # one file
+bun test -t "<name>"               # filter by test name
+git config core.hooksPath hooks/   # pre-commit (staged lint/format), pre-push (verify)
 ```
+
+`.prettierignore` excludes local `.atl/`, `openspec/` and `odd/`. Tests are fixture-based and need no running services.
+
+### Library (`src/`)
+
+`src/` is a TypeScript library (`delegate`, `resolveModel`, `buildArgs`, `EventCollector`) left from the removed MCP server. No plugin surface imports it; only the tests exercise it, and it is the reference for how `opencode run` is invoked and its JSON stream parsed. Changing it does not change plugin behaviour. Its provider preference (direct provider over an aggregator, `OPENCODE_DELEGATE_PREFERRED_PROVIDERS` first) applies only here, not to the worker. Variables read by `src/config.ts`:
+
+| Variable                                | Default             | Description                                                       |
+| --------------------------------------- | ------------------- | ----------------------------------------------------------------- |
+| `OPENCODE_BIN`                          | auto-detected       | Path to `opencode`                                                |
+| `OPENCODE_DELEGATE_DEFAULT_MODEL`       | see `src/config.ts` | Model when none given; empty string means OpenCode's own default  |
+| `OPENCODE_DELEGATE_READ_MODEL`          | see `src/config.ts` | Model when none given and `auto` is false; empty string as above  |
+| `OPENCODE_DELEGATE_AUTO`                | `true`              | Default for `auto`; `0`, `false`, `no`, `off` disable it          |
+| `OPENCODE_DELEGATE_TIMEOUT`             | `1800`              | Seconds before a run is killed                                    |
+| `OPENCODE_DELEGATE_MAX_OUTPUT`          | `40000`             | Maximum response characters returned                              |
+| `OPENCODE_DELEGATE_THINKING`            | `true`              | Include reasoning blocks in output                                |
+| `OPENCODE_DELEGATE_CWD`                 | process cwd         | Base working directory                                            |
+| `OPENCODE_DELEGATE_PREFERRED_PROVIDERS` | none                | Comma-separated provider order when a model has several providers |
 
 ## License
 
-MIT
+MIT. Originally created by [aashahin](https://github.com/aashahin).
