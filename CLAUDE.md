@@ -15,14 +15,17 @@ Bun runs `.ts` directly. Nothing is compiled or bundled (`tsconfig` sets `noEmit
 
 The plugin's runtime behaviour lives in markdown, not in `src/`:
 
-| Surface   | File                                             | Role                                                                             |
-| --------- | ------------------------------------------------ | -------------------------------------------------------------------------------- |
-| Skill     | `skills/opencode-delegate/SKILL.md`              | Model picking, brief template, review-after-return rules                         |
-| Agent     | `agents/opencode-worker.md`                      | Thin forwarder: one `opencode run` (write: `build --auto`; read: `plan`), report |
-| Command   | `commands/opencode.md`                           | `/opencode <model> -- <task>`: splits on `--`, spawns `opencode-worker`          |
-| Manifests | `.claude-plugin/plugin.json`, `marketplace.json` | Plugin identity; `plugin.json` carries homepage/repository shown by Claude Code  |
+| Surface   | File                                                      | Role                                                                                                                                                                                   |
+| --------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Skill     | `skills/opencode-delegate/SKILL.md`                       | Model picking, brief template, review-after-return rules                                                                                                                               |
+| Agent     | `agents/opencode-worker.md`                               | Thin forwarder: one `opencode run` (write: `build --auto`; read: `plan`), report                                                                                                       |
+| Command   | `commands/opencode.md`                                    | `/opencode <model> -- <task>`: splits on `--`, spawns `opencode-worker`                                                                                                                |
+| Hook      | `scripts/route-to-opencode.sh`, `plugin-hooks/hooks.json` | PreToolUse `Agent\|Task`: rewrites general-purpose calls to `opencode-worker` on Haiku; pass-through guards: `OPENCODE_DELEGATE_ROUTE=off`, missing opencode, `[no-opencode]`, no `jq` |
+| Manifests | `.claude-plugin/plugin.json`, `marketplace.json`          | Plugin identity; `plugin.json` carries homepage/repository shown by Claude Code                                                                                                        |
 
 `src/` is a library that no plugin surface imports since the MCP server was removed; only the tests exercise it. Its exports (`delegate`, `resolveModel`, `buildArgs`, `EventCollector`) are the reference for how `opencode run` must be invoked and how its JSON stream is parsed. Changing behaviour in `src/` does NOT change what the plugin does — the markdown files do. `opencode-worker` shells out to `opencode run` itself; keep its command consistent with `buildArgs`.
+
+- `plugin-hooks/` holds the plugin's Claude Code hooks (registered via the `hooks` field in `plugin.json`); `hooks/` holds this repo's git hooks. Never put `hooks.json` in `hooks/`. The routing script is tested by `test/route-hook.test.ts`.
 
 Invocation gotchas (observed on opencode 2.1.2):
 
