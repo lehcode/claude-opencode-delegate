@@ -38,7 +38,8 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - name: npm >= 11.5.1 (trusted publishing)
         run: npm install -g npm@^11.5.1
-      - run: npm install
+      # Lockfile-exact install without dependency lifecycle scripts: this job holds publish rights (id-token).
+      - run: npm ci --ignore-scripts
       - run: bun run verify
       - name: dist is up to date
         run: bun run build && test -z "$(git status --porcelain --untracked-files=all -- dist/)"
