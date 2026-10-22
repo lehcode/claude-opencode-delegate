@@ -12,7 +12,7 @@
         ]
       },
       {
-        "matcher": "mcp__plugin_opencode-delegate_opencode__delegate.*|mcp__opencode__delegate.*",
+        "matcher": "mcp__plugin_claudelegate_opencode__delegate.*|mcp__opencode__delegate.*",
         "hooks": [
           {
             "type": "command",

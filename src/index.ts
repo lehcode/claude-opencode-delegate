@@ -17,14 +17,14 @@ const pkg = JSON.parse(readFileSync(join(import.meta.dir, "..", "package.json"),
 // Injected into every session's system prompt (unlike tool descriptions, which deferred-tool clients
 // hide until loaded), so this is what makes Claude delegate implementation without being asked.
 const INSTRUCTIONS = `Delegate implementation to OpenCode by default; you stay the orchestrator. Delegating means spawning background agents, never blocking the main thread.
-- Launch the \`opencode-delegate:opencode-worker\` subagent (Agent tool, in the background; set \`run_in_background: true\` where the Agent tool offers it) for every self-contained code change (new code, multi-file edits, tests, refactors, boilerplate) and for broad read-only exploration (say "read-only" in its prompt). Spawn one worker per independent task, in parallel when they do not edit the same files, and keep working while they run.
+- Launch the \`claudelegate:opencode-worker\` subagent (Agent tool, in the background; set \`run_in_background: true\` where the Agent tool offers it) for every self-contained code change (new code, multi-file edits, tests, refactors, boilerplate) and for broad read-only exploration (say "read-only" in its prompt). Spawn one worker per independent task, in parallel when they do not edit the same files, and keep working while they run.
 - The \`delegate\`, \`delegate_async\` and \`task_*\` tools are for the worker, which calls \`delegate\` and supervises the result. The main thread never calls them (a hook denies \`delegate\` and \`delegate_async\`): \`delegate\` blocks the main thread, and async tasks are lost when the MCP server restarts.
 - Keep for yourself: planning and design decisions, one-line edits, git/commit/PR/delivery, and anything the user asked you to do yourself.
 - The OpenCode model cannot see this conversation: give the worker a self-contained brief (goal, files, constraints, acceptance checks). Name a model only if the user named one.
 - When a worker reports back, review its git changes and run the project's checks before reporting. For fixes, spawn the worker again with its session id and precise feedback instead of redoing the work yourself.`;
 
 const server = new McpServer(
-  { name: "opencode-delegate", version: pkg.version },
+  { name: "claudelegate", version: pkg.version },
   { instructions: INSTRUCTIONS },
 );
 

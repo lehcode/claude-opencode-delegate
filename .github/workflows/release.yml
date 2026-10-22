@@ -1,6 +1,6 @@
 # Release flow: conventional commits on main -> release-please PR -> merge -> tag, GitHub release, npm publish.
 # The first publish must be manual (`npm publish --access public`); afterwards configure the trusted
-# publisher on npmjs.com (repo lehcode/claude-opencode-delegate, workflow release.yml). No npm token is used.
+# publisher on npmjs.com (repo lehcode/claudelegate, workflow release.yml). No npm token is used.
 name: release
 on:
   push:

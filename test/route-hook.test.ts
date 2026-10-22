@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 const SCRIPT = new URL("../scripts/route-to-opencode.sh", import.meta.url).pathname;
-const WORKER = "opencode-delegate:opencode-worker";
+const WORKER = "claudelegate:opencode-worker";
 
 type ToolInput = Record<string, unknown>;
 
@@ -90,27 +90,31 @@ describe("route-to-opencode hook: built-in subagent types", () => {
       `Read-only task (routed from the \`${t}\` subagent).\n\nfind x`,
     );
     expect(o.updatedInput.run_in_background).toBe(true);
-    expect(o.permissionDecisionReason).toBe(`routed ${t} to opencode-worker`);
+    expect(o.permissionDecisionReason).toBe(`routed ${t} to claudelegate:opencode-worker`);
   });
   test("statusline-setup gets a routed-from note", () => {
     const o = routed("statusline-setup", "do it");
     expect(o.updatedInput.prompt).toBe("Routed from the `statusline-setup` subagent.\n\ndo it");
-    expect(o.permissionDecisionReason).toBe("routed statusline-setup to opencode-worker");
+    expect(o.permissionDecisionReason).toBe(
+      "routed statusline-setup to claudelegate:opencode-worker",
+    );
   });
   test("claude prompt is unchanged", () => {
     const o = routed("claude", "plain");
     expect(o.updatedInput.prompt).toBe("plain");
-    expect(o.permissionDecisionReason).toBe("routed claude to opencode-worker");
+    expect(o.permissionDecisionReason).toBe("routed claude to claudelegate:opencode-worker");
   });
   test("general-purpose prompt is unchanged and reason names it", () => {
     const o = routed("general-purpose", "plain");
     expect(o.updatedInput.prompt).toBe("plain");
-    expect(o.permissionDecisionReason).toBe("routed general-purpose to opencode-worker");
+    expect(o.permissionDecisionReason).toBe(
+      "routed general-purpose to claudelegate:opencode-worker",
+    );
   });
   test("missing type reason says general-purpose", () => {
     const r = run(call(base));
     expect(JSON.parse(r.out).hookSpecificOutput.permissionDecisionReason).toBe(
-      "routed general-purpose to opencode-worker",
+      "routed general-purpose to claudelegate:opencode-worker",
     );
   });
   test("tricky prompt stays verbatim inside the prefix", () => {
