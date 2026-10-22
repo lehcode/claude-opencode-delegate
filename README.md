@@ -7,35 +7,42 @@ the orchestrator. It plans the work, briefs the other model, reviews the diff, a
 ```
 you ▸ use grok 4.7 from xAI in opencode to implement the CSV export, you review it
 
-claude ▸ delegate(model: "grok 4.7 from xAI", prompt: "<self-contained brief>")
-         ↳ xai/grok-4.7 edits src/export.ts, runs tests …
+claude ▸ spawn opencode-worker subagent with model "grok 4.7" and brief
+
+opencode ▸ grok-4.7 edits src/export.ts, runs tests …
+
 claude ▸ reviews git diff, runs `bun test`, and reports back
 ```
 
 It works in:
 
-- **Claude Code** (CLI, IDE, desktop): you can ask directly, use `/opencode`, use the `opencode-worker` subagent, or use it from dynamic workflows.
-- **Claude Desktop** on Linux, macOS, or Windows, as a plain MCP server.
+- **Claude Code** (CLI, IDE, desktop): you can ask directly, use `/opencode`, use the
+  `opencode-delegate` skill, or use the `opencode-worker` agent.
+- **Claude Desktop** on Linux, macOS, or Windows: use the skill/agent files directly or run
+  OpenCode from the terminal.
 
 ## How it works
 
 ```
 Claude Code / Claude Desktop / subagent / workflow
-        │  MCP (stdio)
+        │  agent activation (skill, slash-command, subagent)
         ▼
-opencode-delegate MCP server (Bun)
-        │  spawns
+opencode-delegate skill/agent files
+        │  guide Claude
         ▼
 opencode run --format json -m <provider/model> [--auto] [--session …]
 ```
 
-The server shells out to the `opencode` CLI, so it uses your existing OpenCode auth, config, agents,
-MCP servers, and permission rules. It does not use a separate API.
+OpenCode is invoked directly via the slash command (`/opencode`) or the `opencode-worker` agent.
+No MCP server, no stdio transport, no bun bundler.
+
+The `opencode` CLI uses your existing OpenCode auth, config, agents, and permission rules. It
+does not use a separate API.
 
 ## Requirements
 
-- [Bun](https://bun.sh) ≥ 1.1
-- [OpenCode](https://opencode.ai) v2+ with at least one provider set up. Check that `opencode models` lists something.
+- [OpenCode](https://opencode.ai) v2+ with at least one provider set up. Check that
+  `opencode models` lists something.
 
 ## Install
 
@@ -46,38 +53,8 @@ MCP servers, and permission rules. It does not use a separate API.
 /plugin install opencode-delegate@claude-opencode-delegate
 ```
 
-This gives you the MCP server, the **opencode-delegate** skill, the **opencode-worker** subagent, and
-the **/opencode** command.
-
-### Claude Code: MCP server only
-
-```bash
-git clone https://github.com/aashahin/claude-opencode-delegate ~/.local/share/claude-opencode-delegate
-claude mcp add opencode -s user -- bun ~/.local/share/claude-opencode-delegate/dist/index.js
-```
-
-### Claude Desktop
-
-Clone the repo as shown above. Then add the server to `~/.config/Claude/claude_desktop_config.json`
-on Linux, or to `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS:
-
-```json
-{
-  "mcpServers": {
-    "opencode": {
-      "command": "/home/YOU/.bun/bin/bun",
-      "args": ["/home/YOU/.local/share/claude-opencode-delegate/dist/index.js"],
-      "env": { "OPENCODE_DELEGATE_CWD": "/home/YOU/projects/my-app" }
-    }
-  }
-}
-```
-
-Use absolute paths, because Desktop doesn't load your shell `PATH`. The server searches for
-`opencode` in `~/.opencode/bin`, `~/.bun/bin`, `~/.local/bin`, and `/usr/local/bin`. If yours is
-somewhere else, set `OPENCODE_BIN`. If your providers read API keys from environment variables (for
-example `XAI_API_KEY`), add those to `env` too, or add the keys with `opencode auth login`.
-Desktop has no project directory, so either set `OPENCODE_DELEGATE_CWD` or ask Claude to pass `cwd`.
+This gives you the **opencode-delegate** skill, the **opencode-worker** agent, and the
+**/opencode** command.
 
 ## Usage
 
@@ -107,23 +84,15 @@ You can use exact ids (`opencode-go/grok-4.7`) or loose names (`grok 4.7`, `kimi
   Read-only tasks (`auto: false`) use the free `opencode/muse-spark-1.3-contributor-free`. You can
   change both with the env vars below.
 
-### Tools
+### Slash command
 
-| Tool                                        | What it does                                                                                                |
-| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `list_models`                               | Lists the `opencode models` output. Takes an optional `filter`.                                             |
-| `delegate`                                  | Runs a task and waits for it. Returns the response, `session_id`, token usage, tools used, and git changes. |
-| `delegate_async`                            | Same as `delegate`, but returns a `task_id` right away. Use it for long jobs and parallel fan-out.          |
-| `task_result` / `task_list` / `task_cancel` | Collect results (with `wait_s`), list tasks, or stop a background task.                                     |
-| `list_sessions`                             | Lists recent opencode sessions, so you can find one to continue.                                            |
+`/opencode <model> -- <task>` — delegate to an OpenCode model. The slash command expands the
+brief, spawns an `opencode-worker` subagent, and waits for the result.
 
-`delegate` and `delegate_async` take these arguments:
+### Agent
 
-- `prompt` and `model`
-- `cwd` and `agent` (for example `build`, `plan`, or your own agents)
-- `files` to attach
-- `session_id`, `continue`, or `fork` to follow up in an earlier session
-- `auto`, `title`, and `timeout_s`
+The `opencode-worker` agent is a ready-made supervisor. Give it a model and task — it gathers
+context, writes the brief, delegates, verifies, iterates, and reports.
 
 ### Permissions
 
@@ -134,22 +103,22 @@ every change it gets back.
 
 ### Using it from workflows
 
-Workflow `agent()` calls and subagents can use the MCP tools directly or through the `opencode-worker`
-agent. If you fan out tasks that edit files, give each one its own `git worktree` so they don't
-conflict.
+Workflow `agent()` calls and subagents can use the `opencode-worker` agent directly. If you fan out
+tasks that edit files, give each one its own `git worktree` so they don't conflict.
 
 ## Configuration (env vars)
 
-| Variable                                | Default                                    |                                                                                                                                                                       |
-| --------------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `OPENCODE_BIN`                          | auto-detected                              | Path to the `opencode` executable.                                                                                                                                    |
-| `OPENCODE_DELEGATE_DEFAULT_MODEL`       | `opencode-go/muse-spark-1.3-contributor`   | Model used when `model` is omitted. Set it to `""` to use opencode's own default.                                                                                     |
-| `OPENCODE_DELEGATE_READ_MODEL`          | `opencode/muse-spark-1.3-contributor-free` | Model used when `model` is omitted and `auto` is false (reading files, reviews, questions). Free by default.                                                          |
-| `OPENCODE_DELEGATE_AUTO`                | `true`                                     | Default for `auto`.                                                                                                                                                   |
-| `OPENCODE_DELEGATE_TIMEOUT`             | `1800`                                     | Seconds before a run is killed.                                                                                                                                       |
-| `OPENCODE_DELEGATE_MAX_OUTPUT`          | `40000`                                    | Maximum number of response characters returned to Claude.                                                                                                             |
-| `OPENCODE_DELEGATE_CWD`                 | the server's cwd                           | Base directory for `cwd`.                                                                                                                                             |
-| `OPENCODE_DELEGATE_PREFERRED_PROVIDERS` | _(none)_                                   | Comma-separated provider order used when a model is offered by several providers, e.g. `xai,opencode-go`. Without it, the model maker's own provider beats resellers. |
+| Variable                                | Default                                    | Description                                                                                                  |
+| --------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `OPENCODE_BIN`                          | auto-detected                              | Path to the `opencode` executable.                                                                           |
+| `OPENCODE_DELEGATE_DEFAULT_MODEL`       | `opencode-go/muse-spark-1.3-contributor`   | Model used when `model` is omitted. Set it to `""` to use opencode's own default.                            |
+| `OPENCODE_DELEGATE_READ_MODEL`          | `opencode/muse-spark-1.3-contributor-free` | Model used when `model` is omitted and `auto` is false (reading files, reviews, questions). Free by default. |
+| `OPENCODE_DELEGATE_AUTO`                | `true`                                     | Default for `auto`.                                                                                          |
+| `OPENCODE_DELEGATE_TIMEOUT`             | `1800`                                     | Seconds before a run is killed.                                                                              |
+| `OPENCODE_DELEGATE_MAX_OUTPUT`          | `40000`                                    | Maximum number of response characters returned to Claude.                                                    |
+| `OPENCODE_DELEGATE_CWD`                 | the server's cwd                           | Base directory for `cwd`.                                                                                    |
+| `OPENCODE_DELEGATE_PREFERRED_PROVIDERS` | _(none)_                                   | Comma-separated provider order used when a model is offered by several providers, e.g. `xai,opencode-go`.    |
+| `OPENCODE_DELEGATE_THINKING`            | `true`                                     | Include `--thinking` so reasoning/thinking blocks appear in output.                                          |
 
 ## Development
 
@@ -157,11 +126,9 @@ conflict.
 bun install
 bun test            # unit tests (fixtures captured from real `opencode run --format json`)
 bun run typecheck
-bun run build       # bundles to dist/index.js, which is committed so installs need no build step
-bun run start       # run the server from source
+bun run lint
+bun run fmt
 ```
-
-To debug interactively, use `bunx @modelcontextprotocol/inspector bun dist/index.js`.
 
 ## License
 
