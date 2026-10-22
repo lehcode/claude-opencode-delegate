@@ -23,6 +23,10 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: typescript
+          # dist/ is the generated bundle of src/ plus third-party deps (MCP SDK, zod); src/ is scanned.
+          config: |
+            paths-ignore:
+              - dist
 
       - name: Autobuild
         uses: github/codeql-action/autobuild@v3
