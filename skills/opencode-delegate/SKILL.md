@@ -5,20 +5,19 @@ description: Delegate coding or analysis work to another model through OpenCode 
 
 # Delegating to OpenCode models
 
-Use the `opencode` MCP tools, the `opencode` slash command (`/opencode <model> -- <task>`) or the `opencode-worker` agent to delegate tasks to an OpenCode model. The delegated model has its own tools (read, edit, shell), so it can implement code, not just answer. **You stay the orchestrator**: you hand over the task, and you review what comes back.
+From the main thread, delegate through the `opencode-worker` agent (spawned in the background) or the `opencode` slash command (`/opencode <model> -- <task>`), which spawns it. The worker is the only caller of the `opencode` MCP tools. The delegated model has its own tools (read, edit, shell), so it can implement code, not just answer. **You stay the orchestrator**: you hand over the task, and you review what comes back.
 
 ## Mechanism
 
-The `opencode` MCP server runs `opencode run` in the project and returns the reply, session id, token usage and git changes. The `opencode-worker` agent is a thin forwarder that runs `opencode run --format json` directly and reports the same; it does not review, fix or retry.
+The `opencode` MCP server runs `opencode run` in the project and returns the reply, session id, token usage and git changes. The `opencode-worker` agent calls its `delegate` tool, verifies the git changes and tests, iterates at most twice with the same `session_id`, and reports. The main thread never calls `delegate` or `delegate_async`: `delegate` blocks it, async tasks are lost when the MCP server restarts, and a PreToolUse hook denies the call.
 
 | Method                        | When to use                                                |
 | ----------------------------- | ---------------------------------------------------------- |
-| `delegate` MCP tool           | Implementation work: call it directly from the main thread |
-| `delegate_async` MCP tool     | Long tasks or parallel runs; collect with `task_result`    |
+| `opencode-worker` agent       | Implementation, read-only exploration, parallel fan-out    |
 | `/opencode <model> -- <task>` | Simple delegation: spawns `opencode-worker`                |
-| `opencode-worker` agent       | Workflows, parallel fan-out, iteration                     |
+| MCP tools                     | Called by `opencode-worker` only, never by the main thread |
 
-## Tools
+## Tools (used by the worker)
 
 | Tool                                        | Use                                                                         |
 | ------------------------------------------- | --------------------------------------------------------------------------- |
@@ -27,7 +26,7 @@ The `opencode` MCP server runs `opencode run` in the project and returns the rep
 | `delegate_async` → `task_result` (`wait_s`) | Long tasks, or several models in parallel. Also `task_list`, `task_cancel`. |
 | `list_sessions`                             | Find a `session_id` to continue.                                            |
 
-In a plugin install the tools are named like `mcp__plugin_opencode-delegate_opencode__delegate`. With a manual install they are `mcp__opencode__delegate`. The `prompt` must be a self-contained brief (the model cannot see this conversation); pass `auto: false` for read-only work, `session_id` to continue.
+In a plugin install the tools are named like `mcp__plugin_opencode-delegate_opencode__delegate`. With a manual install they are `mcp__opencode__delegate`. The worker's `prompt` must be a self-contained brief (the model cannot see this conversation); pass `auto: false` for read-only work, `session_id` to continue.
 
 ## Modes
 
@@ -40,7 +39,7 @@ Write mode passes `--agent build` because the project default agent may be `plan
 
 ## Picking the model
 
-- Pass what the user said: `grok 4.7`, `kimi k3`, `xai/grok-4.7`. The agent resolves a loose name against `opencode models` and requires an exact version match. If several distinct models match, it returns the candidate list instead of guessing; choose one, and ask the user only if their intent is unclear.
+- Pass what the user said: `grok 4.7`, `kimi k3`, `xai/grok-4.7`. The agent resolves a loose name against `opencode models` and requires an exact version match. If several models match, the worker picks the best candidate that fits the instructions (a named provider wins); name the exact `provider/model` when the choice matters.
 - For a reasoning variant, add `#variant`, e.g. `xai/grok-4.7#high`.
 - If the user names no model, omit it. OpenCode then uses its configured default model.
 
@@ -60,7 +59,7 @@ The agent reports a session id. To give feedback or continue after a timeout, in
 
 ## After it returns: review, don't trust blindly
 
-The agent reports the model used, session id, exit status, changed files and OpenCode's own report.
+The worker has already checked the git changes and run the tests; it reports the model used, session id, changed files, its verification and a verdict. Still read the diff.
 
 1. Read the diff (`git diff`) for the files it lists.
 2. Run the tests or build yourself.
