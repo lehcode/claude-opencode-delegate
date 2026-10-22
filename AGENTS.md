@@ -25,18 +25,19 @@ Configure after clone: `git config core.hooksPath hooks/`
 
 ## Architecture
 
-Claude Code plugin — no MCP server. Core modules:
+Claude Code plugin with a bundled MCP server (`.mcp.json` → `dist/index.js`, built from `src/index.ts` with `bun run build`; commit the bundle, CI checks it is current). Core modules:
 
-| File          | Role                                                                                      |
-| ------------- | ----------------------------------------------------------------------------------------- |
-| `config.ts`   | Resolve `opencode` binary path, env-based defaults, bool/int helpers                      |
-| `models.ts`   | Model listing (cached 5 min), loose-name → provider/model resolution, aggregator priority |
-| `opencode.ts` | Spawn `opencode run --format json`, fold JSON event stream into `EventCollector`          |
-| `delegate.ts` | Build args, git-diff changed-files detection, format outcome                              |
-| `tasks.ts`    | In-memory async task store (UUID keys, max 100 finished), prune oldest                    |
+| File          | Role                                                                                                                        |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `index.ts`    | MCP server (stdio): `delegate`, `delegate_async`, `task_result`, `task_list`, `task_cancel`, `list_models`, `list_sessions` |
+| `config.ts`   | Resolve `opencode` binary path, env-based defaults, bool/int helpers                                                        |
+| `models.ts`   | Model listing (cached 5 min), loose-name → provider/model resolution, aggregator priority                                   |
+| `opencode.ts` | Spawn `opencode run --format json`, fold JSON event stream into `EventCollector`                                            |
+| `delegate.ts` | Build args, git-diff changed-files detection, format outcome                                                                |
+| `tasks.ts`    | In-memory async task store (UUID keys, max 100 finished), prune oldest                                                      |
 
 Tests mirror this structure: `test/models.test.ts` (resolution logic), `test/opencode.test.ts`
-(EventCollector + buildArgs). Fixtures are JSONL captured from real `opencode run` sessions.
+(EventCollector + buildArgs), `test/mcp-server.test.ts` (spawns the server, checks `tools/list`). Fixtures are JSONL captured from real `opencode run` sessions.
 
 ## Gotchas
 
