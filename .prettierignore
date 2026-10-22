@@ -1,0 +1,4 @@
+# Local planning/registry artifacts (git-excluded via .git/info/exclude, never in CI)
+.atl/
+openspec/
+odd/
