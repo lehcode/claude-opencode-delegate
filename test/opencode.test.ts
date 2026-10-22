@@ -48,6 +48,7 @@ describe("buildArgs", () => {
         sessionId: "ses_1",
         fork: true,
         auto: true,
+        thinking: true,
         title: "t",
         files: ["/x"],
       }),
@@ -63,6 +64,7 @@ describe("buildArgs", () => {
       "ses_1",
       "--fork",
       "--auto",
+      "--thinking",
       "--title",
       "t",
       "--file",
@@ -76,5 +78,17 @@ describe("buildArgs", () => {
   });
   test("fork without a session is dropped", () => {
     expect(buildArgs({ prompt: "hi", fork: true })).not.toContain("--fork");
+  });
+  test("thinking: true includes --thinking flag", () => {
+    const args = buildArgs({ prompt: "hi", thinking: true });
+    expect(args).toContain("--thinking");
+  });
+  test("thinking: false omits --thinking flag", () => {
+    const args = buildArgs({ prompt: "hi", thinking: false });
+    expect(args).not.toContain("--thinking");
+  });
+  test("--thinking appears before -- separator", () => {
+    const args = buildArgs({ prompt: "hi", thinking: true });
+    expect(args.indexOf("--thinking") < args.indexOf("--")).toBe(true);
   });
 });
