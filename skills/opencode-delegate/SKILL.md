@@ -5,16 +5,29 @@ description: Delegate coding or analysis work to another model through OpenCode 
 
 # Delegating to OpenCode models
 
-Use the `opencode` slash command (`/opencode <model> -- <task>`) or the `opencode-worker` agent to delegate tasks to an OpenCode model. The delegated model has its own tools (read, edit, shell), so it can implement code, not just answer. **You stay the orchestrator**: you hand over the task, and you review what comes back.
+Use the `opencode` MCP tools, the `opencode` slash command (`/opencode <model> -- <task>`) or the `opencode-worker` agent to delegate tasks to an OpenCode model. The delegated model has its own tools (read, edit, shell), so it can implement code, not just answer. **You stay the orchestrator**: you hand over the task, and you review what comes back.
 
 ## Mechanism
 
-The `opencode-worker` agent is the only mechanism. It is a thin forwarder that runs `opencode run --format json` directly and reports the session id, the reply and the changed files. It does not review, fix or retry.
+The `opencode` MCP server runs `opencode run` in the project and returns the reply, session id, token usage and git changes. The `opencode-worker` agent is a thin forwarder that runs `opencode run --format json` directly and reports the same; it does not review, fix or retry.
 
-| Method                        | When to use                                 |
-| ----------------------------- | ------------------------------------------- |
-| `/opencode <model> -- <task>` | Simple delegation: spawns `opencode-worker` |
-| `opencode-worker` agent       | Workflows, parallel fan-out, iteration      |
+| Method                        | When to use                                                |
+| ----------------------------- | ---------------------------------------------------------- |
+| `delegate` MCP tool           | Implementation work: call it directly from the main thread |
+| `delegate_async` MCP tool     | Long tasks or parallel runs; collect with `task_result`    |
+| `/opencode <model> -- <task>` | Simple delegation: spawns `opencode-worker`                |
+| `opencode-worker` agent       | Workflows, parallel fan-out, iteration                     |
+
+## Tools
+
+| Tool                                        | Use                                                                         |
+| ------------------------------------------- | --------------------------------------------------------------------------- |
+| `list_models` (`filter?`)                   | Find the exact `provider/model` id.                                         |
+| `delegate`                                  | Run a task and wait for the result.                                         |
+| `delegate_async` → `task_result` (`wait_s`) | Long tasks, or several models in parallel. Also `task_list`, `task_cancel`. |
+| `list_sessions`                             | Find a `session_id` to continue.                                            |
+
+In a plugin install the tools are named like `mcp__plugin_opencode-delegate_opencode__delegate`. With a manual install they are `mcp__opencode__delegate`. The `prompt` must be a self-contained brief (the model cannot see this conversation); pass `auto: false` for read-only work, `session_id` to continue.
 
 ## Modes
 
