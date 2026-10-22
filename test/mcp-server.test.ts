@@ -81,13 +81,16 @@ describe.each(["src/index.ts", "dist/index.js"])("MCP server (%s)", (entry) => {
 
   // Clients inject server instructions into every session's system prompt even when the tools
   // themselves are deferred, so this is what makes Claude delegate without being asked.
-  test("initialize sends instructions that make delegation the default for implementation", async () => {
+  test("initialize sends instructions that make background worker agents the default for implementation", async () => {
     const { instructions } = await handshake(entry);
     expect(instructions).toBeString();
     expect(instructions).toContain("delegate");
     expect(instructions).toContain("delegate_async");
     expect(instructions).toMatch(/by default/i);
     expect(instructions).toMatch(/review/i);
+    expect(instructions).toContain("opencode-delegate:opencode-worker");
+    expect(instructions).toMatch(/background/i);
+    expect(instructions).toMatch(/blocks the main thread/i);
   }, 15000);
 });
 
