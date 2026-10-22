@@ -24,7 +24,7 @@ export function resolveBin(env = process.env): string {
 }
 
 /** Unset → fallback; set to "" → undefined (use opencode's own default). */
-function model(v: string | undefined, fallback: string): string | undefined {
+function model(v: string | undefined, fallback: string | undefined): string | undefined {
   if (v === undefined) return fallback;
   return v.trim() || undefined;
 }
@@ -41,15 +41,12 @@ function int(v: string | undefined, dflt: number): number {
 
 export const config = {
   bin: resolveBin(),
-  defaultModel: model(
-    process.env.OPENCODE_DELEGATE_DEFAULT_MODEL,
-    "opencode-go/muse-spark-1.3-contributor",
-  ),
+  // No built-in fallback: unset means `-m` is omitted and opencode's configured default model is used.
+  // Previously hardcoded: "opencode-go/muse-spark-1.3-contributor" (it overrode the user's opencode config).
+  defaultModel: model(process.env.OPENCODE_DELEGATE_DEFAULT_MODEL, undefined),
   // Used when no model is given and the run is read-only (auto: false): reading, reviews, questions.
-  readModel: model(
-    process.env.OPENCODE_DELEGATE_READ_MODEL,
-    "opencode/muse-spark-1.3-contributor-free",
-  ),
+  // Previously hardcoded: "opencode/muse-spark-1.3-contributor-free".
+  readModel: model(process.env.OPENCODE_DELEGATE_READ_MODEL, undefined),
   auto: bool(process.env.OPENCODE_DELEGATE_AUTO, true),
   timeoutSec: int(process.env.OPENCODE_DELEGATE_TIMEOUT, 1800),
   maxOutputChars: int(process.env.OPENCODE_DELEGATE_MAX_OUTPUT, 40000),
