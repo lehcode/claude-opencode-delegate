@@ -1,5 +1,5 @@
 ---
-name: opencode-delegate
+name: claudelegate
 description: Delegate coding or analysis work to another model through OpenCode (Grok, Kimi, GLM, Qwen, DeepSeek, MiMo, MiniMax, GPT… anything `opencode models` lists) while Claude stays the orchestrator. Use when the user says things like "use grok 4.7 via opencode to implement X", "ask kimi via opencode", "delegate this to glm", "get a second opinion from deepseek", "have opencode do it", or asks to run/compare several OpenCode models.
 ---
 
