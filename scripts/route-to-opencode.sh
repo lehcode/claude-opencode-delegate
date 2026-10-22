@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-# PreToolUse hook (matcher: Agent|Task): reroute general-purpose subagent calls to
-# opencode-delegate:opencode-worker on Haiku. Never blocks: every guard below
-# passes the call through unchanged (exit 0, no stdout).
+# PreToolUse hook (matcher: Agent|Task): reroute Claude Code's built-in subagent calls
+# to opencode-delegate:opencode-worker on Haiku. Explore/Plan/claude-code-guide prompts
+# get a read-only prefix, statusline-setup a routed-from note; general-purpose, claude
+# and untyped prompts are kept as is. Custom and plugin agents are never routed.
+# Never blocks: every guard below passes the call through unchanged (exit 0, no stdout).
 
 pass() { exit 0; }
 
@@ -20,9 +22,13 @@ printf '%s' "$input" | jq -e '.tool_input | type == "object"' >/dev/null 2>&1 \
 tool=$(printf '%s' "$input" | jq -r '.tool_name // empty')
 case "$tool" in Agent | Task) ;; *) pass ;; esac
 
-# 4. Only general-purpose (missing or empty subagent_type counts as general-purpose).
+# 4. Built-in agents only. Custom, project, user and plugin agents (including reviewers,
+#    SDD agents and opencode-worker itself) stay on Claude. Empty counts as general-purpose.
 subagent=$(printf '%s' "$input" | jq -r '.tool_input.subagent_type // empty')
-[ -z "$subagent" ] || [ "$subagent" = "general-purpose" ] || pass
+case "$subagent" in
+  "" | general-purpose | claude | Explore | Plan | claude-code-guide | statusline-setup) ;;
+  *) pass ;;
+esac
 
 # 5. Global opt-out; same falsy values as src/config.ts bool(). Unset or empty means ON.
 route="${OPENCODE_DELEGATE_ROUTE:-}"
@@ -42,11 +48,21 @@ prompt=$(printf '%s' "$input" | jq -r '.tool_input.prompt // empty')
 case "$prompt" in *"[no-opencode]"*) pass ;; esac
 
 # Rewrite. updatedInput replaces the whole input, so start from the original tool_input.
-printf '%s' "$input" | jq -c '{
-  hookSpecificOutput: {
-    hookEventName: "PreToolUse",
-    permissionDecision: "allow",
-    permissionDecisionReason: "routed general-purpose to opencode-worker",
-    updatedInput: (.tool_input + {subagent_type: "opencode-delegate:opencode-worker", model: "haiku"})
-  }
-}'
+# Missing or empty subagent_type counts as general-purpose. All text is built by jq.
+printf '%s' "$input" | jq -c '
+  (.tool_input.subagent_type // "") as $t
+  | (if $t == "" then "general-purpose" else $t end) as $name
+  | (.tool_input.prompt // "") as $p
+  | (if $name == "general-purpose" or $name == "claude" then $p
+     elif $name == "Explore" or $name == "Plan" or $name == "claude-code-guide" then
+       "Read-only task (routed from the `" + $name + "` subagent).\n\n" + $p
+     else "Routed from the `" + $name + "` subagent.\n\n" + $p end) as $newp
+  | {
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "allow",
+      permissionDecisionReason: ("routed " + $name + " to opencode-worker"),
+      updatedInput: (.tool_input + {subagent_type: "opencode-delegate:opencode-worker", model: "haiku"}
+        + (if .tool_input | has("prompt") then {prompt: $newp} else {} end))
+    }
+  }'

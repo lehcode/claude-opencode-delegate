@@ -72,12 +72,87 @@ describe("route-to-opencode hook: rewrites", () => {
   });
 });
 
-describe("route-to-opencode hook: pass-through", () => {
-  test("Explore is untouched", () => {
-    expectPassThrough(run(call({ ...base, subagent_type: "Explore" })));
+const routed = (type: string, prompt: string, extra: ToolInput = {}) => {
+  const input = { ...base, prompt, subagent_type: type, ...extra };
+  const r = run(call(input));
+  expect(r.code).toBe(0);
+  const o = JSON.parse(r.out).hookSpecificOutput;
+  expect(o.updatedInput.subagent_type).toBe(WORKER);
+  expect(o.updatedInput.model).toBe("haiku");
+  expect(o.updatedInput.description).toBe(base.description);
+  return o as { updatedInput: ToolInput; permissionDecisionReason: string };
+};
+
+describe("route-to-opencode hook: built-in subagent types", () => {
+  test.each(["Explore", "Plan", "claude-code-guide"])("%s gets a read-only prefix", (t) => {
+    const o = routed(t, "find x", { run_in_background: true });
+    expect(o.updatedInput.prompt).toBe(
+      `Read-only task (routed from the \`${t}\` subagent).\n\nfind x`,
+    );
+    expect(o.updatedInput.run_in_background).toBe(true);
+    expect(o.permissionDecisionReason).toBe(`routed ${t} to opencode-worker`);
   });
+  test("statusline-setup gets a routed-from note", () => {
+    const o = routed("statusline-setup", "do it");
+    expect(o.updatedInput.prompt).toBe("Routed from the `statusline-setup` subagent.\n\ndo it");
+    expect(o.permissionDecisionReason).toBe("routed statusline-setup to opencode-worker");
+  });
+  test("claude prompt is unchanged", () => {
+    const o = routed("claude", "plain");
+    expect(o.updatedInput.prompt).toBe("plain");
+    expect(o.permissionDecisionReason).toBe("routed claude to opencode-worker");
+  });
+  test("general-purpose prompt is unchanged and reason names it", () => {
+    const o = routed("general-purpose", "plain");
+    expect(o.updatedInput.prompt).toBe("plain");
+    expect(o.permissionDecisionReason).toBe("routed general-purpose to opencode-worker");
+  });
+  test("missing type reason says general-purpose", () => {
+    const r = run(call(base));
+    expect(JSON.parse(r.out).hookSpecificOutput.permissionDecisionReason).toBe(
+      "routed general-purpose to opencode-worker",
+    );
+  });
+  test("tricky prompt stays verbatim inside the prefix", () => {
+    const tricky = "a \"q\" 's'\nline2 $(id) `id` $HOME \\ ü";
+    const o = routed("Explore", tricky);
+    expect(o.updatedInput.prompt).toBe(
+      `Read-only task (routed from the \`Explore\` subagent).\n\n${tricky}`,
+    );
+    const o2 = routed("statusline-setup", tricky);
+    expect(o2.updatedInput.prompt).toBe(
+      `Routed from the \`statusline-setup\` subagent.\n\n${tricky}`,
+    );
+  });
+  test("[no-opencode] still opts out for named types", () => {
+    expectPassThrough(run(call({ ...base, prompt: "x [no-opencode]", subagent_type: "Plan" })));
+  });
+});
+
+describe("route-to-opencode hook: custom, plugin, reviewer and SDD agents stay on Claude", () => {
+  test.each([
+    "review-risk",
+    "review-refuter",
+    "sdd-apply",
+    "jd-judge-a",
+    "pr-review-toolkit:code-reviewer",
+    "gentle-ai:sdd-verify",
+    "technical-copywriter",
+    "tech-docs-writer",
+    "universal-stack-expert",
+    "superpowers:some-agent",
+    WORKER,
+  ])("%s is untouched", (t) => {
+    expectPassThrough(run(call({ ...base, subagent_type: t })));
+  });
+});
+
+describe("route-to-opencode hook: pass-through", () => {
   test("opencode-worker is untouched (no loop)", () => {
     expectPassThrough(run(call({ ...base, subagent_type: WORKER })));
+  });
+  test("bare opencode-worker is untouched (no loop)", () => {
+    expectPassThrough(run(call({ ...base, subagent_type: "opencode-worker" })));
   });
   test("non-Agent tool is untouched", () => {
     expectPassThrough(run(call(base, "Bash")));
