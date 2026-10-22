@@ -15,6 +15,7 @@ export interface DelegateInput {
   continue?: boolean;
   fork?: boolean;
   auto?: boolean;
+  thinking?: boolean;
   title?: string;
   timeout_s?: number;
 }
@@ -58,6 +59,7 @@ export async function delegate(
     continueLast: input.continue,
     fork: input.fork,
     auto,
+    thinking: input.thinking ?? config.thinking,
     title: input.title,
     timeoutMs: (input.timeout_s ?? config.timeoutSec) * 1000,
     signal,
