@@ -2,10 +2,22 @@
   "name": "opencode-delegate",
   "version": "0.1.0",
   "description": "Delegate tasks from Claude to any OpenCode model (Grok, Kimi, GLM, Qwen, DeepSeek, MiMo…) while Claude stays the orchestrator.",
-  "author": { "name": "aashahin", "url": "https://github.com/aashahin" },
+  "author": {
+    "name": "aashahin",
+    "url": "https://github.com/aashahin"
+  },
   "homepage": "https://github.com/lehcode/claude-opencode-delegate",
   "repository": "https://github.com/lehcode/claude-opencode-delegate",
   "license": "MIT",
   "hooks": "./plugin-hooks/hooks.json",
-  "keywords": ["opencode", "delegate", "subagent", "grok", "kimi", "glm", "qwen", "deepseek"]
+  "keywords": [
+    "opencode",
+    "delegate",
+    "subagent",
+    "grok",
+    "kimi",
+    "glm",
+    "qwen",
+    "deepseek"
+  ]
 }
