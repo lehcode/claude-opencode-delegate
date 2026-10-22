@@ -82,7 +82,7 @@ Continue by spawning `claudelegate:opencode-worker` again with the session id an
 ## Configuration
 
 | Variable                                | Default     | Description                                                                                                                                          |
-| --------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| :-------------------------------------- | :---------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `OPENCODE_BIN`                          | `opencode`  | Path to the opencode executable; when unset, the MCP server searches `PATH` and common install dirs and the routing hook uses `opencode` from `PATH` |
 | `OPENCODE_DELEGATE_ROUTE`               | on          | `0`, `false`, `no` or `off` disables automatic routing and the main-thread guard                                                                     |
 | `OPENCODE_DELEGATE_DEFAULT_MODEL`       | unset       | Model when none is given; unset or empty means OpenCode's configured default                                                                         |
