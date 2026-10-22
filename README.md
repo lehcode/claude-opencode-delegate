@@ -17,8 +17,9 @@ claude ▸ reads git diff, runs tests, reports which model did what and a verdic
 | Agent   | `agents/opencode-worker.md`         | Thin forwarder (`tools: Bash`, `model: haiku`): one `opencode run`                                 |
 | Command | `commands/opencode.md`              | `/opencode <model> -- <task>`: splits on `--`, spawns `opencode-worker`                            |
 | Hook    | `scripts/route-to-opencode.sh`      | PreToolUse hook (`plugin-hooks/hooks.json`): reroutes built-in subagent calls to `opencode-worker` |
+| MCP     | `.mcp.json`, `dist/index.js`        | `opencode` MCP server (bundled from `src/index.ts`): `delegate` and friends as main-thread tools   |
 
-No MCP server, no build step, no `dist/`. Claude Desktop is not supported.
+The MCP server exposes seven tools: `delegate` (run and wait), `delegate_async` (background run, returns a task id), `task_result`, `task_list`, `task_cancel`, `list_models` and `list_sessions`. Claude can call `delegate` directly for implementation work without launching an agent. `dist/index.js` is a committed bundle (the installed plugin cache has no `node_modules`); rebuild it with `bun run build` after changing `src/`, CI fails if it is stale. Claude Desktop is not supported.
 
 ## How it works
 
@@ -134,9 +135,9 @@ git config core.hooksPath hooks/   # pre-commit (staged lint/format), pre-push (
 
 `.prettierignore` excludes local `.atl/`, `openspec/` and `odd/`. Tests are fixture-based and need no running services.
 
-### Library (`src/`)
+### MCP server and library (`src/`)
 
-`src/` is a TypeScript library (`delegate`, `resolveModel`, `buildArgs`, `EventCollector`) left from the removed MCP server. No plugin surface imports it; only the tests exercise it, and it is the reference for how `opencode run` is invoked and its JSON stream parsed. Changing it does not change plugin behaviour. Its provider preference (direct provider over an aggregator, `OPENCODE_DELEGATE_PREFERRED_PROVIDERS` first) applies only here, not to the worker. Variables read by `src/config.ts`:
+`src/index.ts` is the MCP server entry point (`bun run start`, bundled to `dist/index.js` by `bun run build`); it builds on the `delegate`, `resolveModel`, `buildArgs` and `EventCollector` modules, which also document how `opencode run` is invoked and its JSON stream parsed. Changing `src/` changes the MCP tools, so rebuild and commit `dist/`. The provider preference (direct provider over an aggregator, `OPENCODE_DELEGATE_PREFERRED_PROVIDERS` first) applies to the MCP server only, not to the worker. Variables read by `src/config.ts`:
 
 | Variable                                | Default             | Description                                                       |
 | --------------------------------------- | ------------------- | ----------------------------------------------------------------- |
