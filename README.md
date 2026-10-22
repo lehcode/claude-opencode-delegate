@@ -70,6 +70,10 @@ Because the hook is shipped in `plugin-hooks/`, not `hooks/` (which holds this r
 
 To use a local clone, add it as a directory marketplace: `/plugin marketplace add /path/to/clone`. After pulling changes, refresh the plugin (`/plugin` → update, or reinstall).
 
+### As a standalone MCP server (npm)
+
+The MCP server is also published to npm as `@lehcode/claude-opencode-delegate` (needs [Bun](https://bun.sh)). Register it in any MCP client with command `bunx` and args `["@lehcode/claude-opencode-delegate"]`; see `examples/claude_desktop_config.json`.
+
 ## Usage
 
 Three entry points, all ending in the same `opencode-worker`:
@@ -150,6 +154,13 @@ git config core.hooksPath hooks/   # pre-commit (staged lint/format), pre-push (
 | `OPENCODE_DELEGATE_THINKING`            | `true`              | Include reasoning blocks in output                                |
 | `OPENCODE_DELEGATE_CWD`                 | process cwd         | Base working directory                                            |
 | `OPENCODE_DELEGATE_PREFERRED_PROVIDERS` | none                | Comma-separated provider order when a model has several providers |
+
+## Releasing
+
+Releases are automated by [release-please](https://github.com/googleapis/release-please) (`.github/workflows/release.yml`). Conventional commits merged to `main` open or update a release PR that bumps `package.json`, `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` and writes `CHANGELOG.md`; merging it creates the `vX.Y.Z` tag and GitHub release and publishes to npm via trusted publishing (OIDC, no token, provenance automatic). Never edit versions by hand.
+
+- The first publish must be manual (`npm publish --access public`); then add a trusted publisher in the package settings on npmjs.com (repository `lehcode/claude-opencode-delegate`, workflow `release.yml`).
+- Release PRs created with the default `GITHUB_TOKEN` do not trigger CI; to run CI on them, add a `RELEASE_PLEASE_TOKEN` secret (PAT or app token with `contents` and `pull-requests` write). Optional.
 
 ## License
 
