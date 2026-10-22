@@ -11,13 +11,13 @@ claude ▸ reads git diff, runs tests, reports which model did what and a verdic
 
 ## What ships
 
-| Surface | File                                | Role                                                                                               |
-| ------- | ----------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Skill   | `skills/opencode-delegate/SKILL.md` | Model picking, brief template, review-after-return rules                                           |
-| Agent   | `agents/opencode-worker.md`         | Thin forwarder (`tools: Bash`, `model: haiku`): one `opencode run`                                 |
-| Command | `commands/opencode.md`              | `/opencode <model> -- <task>`: splits on `--`, spawns `opencode-worker`                            |
-| Hook    | `scripts/route-to-opencode.sh`      | PreToolUse hook (`plugin-hooks/hooks.json`): reroutes built-in subagent calls to `opencode-worker` |
-| MCP     | `.mcp.json`, `dist/index.js`        | `opencode` MCP server (bundled from `src/index.ts`): `delegate` and friends as main-thread tools   |
+| Surface | File                                        | Role                                                                                               |
+| ------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Skill   | `skills/opencode-delegate/SKILL.md`         | Model picking, brief template, review-after-return rules                                           |
+| Agent   | `agents/opencode-worker.md`                 | Thin forwarder (`tools: Bash`, `model: haiku`): one `opencode run`                                 |
+| Command | `commands/opencode.md`                      | `/opencode <model> -- <task>`: splits on `--`, spawns `opencode-worker`                            |
+| Hook    | `scripts/route-to-opencode.sh`              | PreToolUse hook (`plugin-hooks/hooks.json`): reroutes built-in subagent calls to `opencode-worker` |
+| MCP     | `plugin.json` `mcpServers`, `dist/index.js` | `opencode` MCP server (bundled from `src/index.ts`): `delegate` and friends as main-thread tools   |
 
 The MCP server exposes seven tools: `delegate` (run and wait), `delegate_async` (background run, returns a task id), `task_result`, `task_list`, `task_cancel`, `list_models` and `list_sessions`. Claude can call `delegate` directly for implementation work without launching an agent. `dist/index.js` is a committed bundle (the installed plugin cache has no `node_modules`); rebuild it with `bun run build` after changing `src/`, CI fails if it is stale. Claude Desktop is not supported.
 

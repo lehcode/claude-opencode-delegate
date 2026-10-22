@@ -10,6 +10,14 @@
   "repository": "https://github.com/lehcode/claude-opencode-delegate",
   "license": "MIT",
   "hooks": "./plugin-hooks/hooks.json",
+  "mcpServers": {
+    "opencode": {
+      "command": "bun",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/dist/index.js"
+      ]
+    }
+  },
   "keywords": [
     "opencode",
     "delegate",

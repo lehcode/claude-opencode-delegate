@@ -33,7 +33,6 @@
     ".claude-plugin",
     "scripts",
     "plugin-hooks",
-    ".mcp.json",
     "README.md",
     "LICENSE"
   ],

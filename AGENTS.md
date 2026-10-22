@@ -25,7 +25,7 @@ Configure after clone: `git config core.hooksPath hooks/`
 
 ## Architecture
 
-Claude Code plugin with a bundled MCP server (`.mcp.json` → `dist/index.js`, built from `src/index.ts` with `bun run build`; commit the bundle, CI checks it is current). Core modules:
+Claude Code plugin with a bundled MCP server (`.claude-plugin/plugin.json` `mcpServers` → `dist/index.js`, built from `src/index.ts` with `bun run build`; commit the bundle, CI checks it is current). Core modules:
 
 | File          | Role                                                                                                                        |
 | ------------- | --------------------------------------------------------------------------------------------------------------------------- |
