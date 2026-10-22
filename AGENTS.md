@@ -18,7 +18,7 @@ CI (`.github/workflows/ci.yml`) runs these in order: `install → verify`.
 
 Tracked hooks live in `hooks/`. They run automatically on commit/push:
 
-- **pre-commit**: Prettier check + ESLint on staged files only (fast). Skips docs-only changes.
+- **pre-commit**: Prettier check + ESLint on staged files only (fast). Skips docs-only changes. Vale on staged Markdown in the repo root and `docs/` (skips `.atl/`, `plan/`, `plans/`, `odd/`, `CHANGELOG.md`, `CLAUDE.md` and `AGENTS.md`); skipped with a warning when `vale` is missing; packages are fetched with `vale sync`.
 - **pre-push**: Full `npm run verify` (typecheck, test, lint, format). Runs once per push.
 
 Configure after clone: `git config core.hooksPath hooks/`

@@ -4,3 +4,6 @@ node_modules/
 *.log
 .bak*
 *.bak.*
+.vale/styles/*
+!.vale/styles/config/
+!.vale/styles/Custom/
