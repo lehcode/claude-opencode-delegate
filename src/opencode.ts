@@ -11,6 +11,7 @@ export interface RunOptions {
   continueLast?: boolean;
   fork?: boolean;
   auto?: boolean;
+  thinking?: boolean;
   title?: string;
   timeoutMs?: number;
   signal?: AbortSignal;
@@ -51,6 +52,7 @@ export function buildArgs(o: RunOptions): string[] {
   else if (o.continueLast) args.push("--continue");
   if (o.fork && (o.sessionId || o.continueLast)) args.push("--fork");
   if (o.auto) args.push("--auto");
+  if (o.thinking) args.push("--thinking");
   if (o.title) args.push("--title", o.title);
   for (const f of o.files ?? []) args.push("--file", f);
   // "--" so prompts starting with "-" are not parsed as flags

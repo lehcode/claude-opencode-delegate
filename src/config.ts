@@ -53,6 +53,7 @@ export const config = {
   auto: bool(process.env.OPENCODE_DELEGATE_AUTO, true),
   timeoutSec: int(process.env.OPENCODE_DELEGATE_TIMEOUT, 1800),
   maxOutputChars: int(process.env.OPENCODE_DELEGATE_MAX_OUTPUT, 40000),
+  thinking: bool(process.env.OPENCODE_DELEGATE_THINKING, true),
   defaultCwd: process.env.OPENCODE_DELEGATE_CWD || process.cwd(),
   // Providers to prefer when the same model is offered by several, highest priority first.
   preferredProviders: (process.env.OPENCODE_DELEGATE_PREFERRED_PROVIDERS ?? "")
