@@ -21484,7 +21484,8 @@ class StdioServerTransport {
 }
 
 // src/index.ts
-import { resolve as resolve2 } from "path";
+import { readFileSync } from "fs";
+import { join as join2, resolve as resolve2 } from "path";
 
 // src/config.ts
 import { existsSync } from "fs";
@@ -21971,65 +21972,10 @@ async function waitTask(task, waitSec) {
   await Promise.race([task.promise, new Promise((r) => timer = setTimeout(r, waitSec * 1000))]);
   clearTimeout(timer);
 }
-// package.json
-var package_default = {
-  name: "claude-opencode-delegate",
-  version: "0.1.0",
-  description: "Claude Code plugin \u2014 delegate tasks to any OpenCode model (Grok, Kimi, GLM, Qwen, DeepSeek\u2026) via agent activation, while Claude stays the orchestrator.",
-  type: "module",
-  license: "MIT",
-  author: "aashahin",
-  repository: {
-    type: "git",
-    url: "git+https://github.com/aashahin/claude-opencode-delegate.git"
-  },
-  keywords: [
-    "claude",
-    "claude-code",
-    "opencode",
-    "subagent",
-    "delegate"
-  ],
-  files: [
-    "dist",
-    "src",
-    "skills",
-    "agents",
-    "commands",
-    ".claude-plugin",
-    "README.md",
-    "LICENSE"
-  ],
-  engines: {
-    bun: ">=1.1"
-  },
-  scripts: {
-    start: "bun src/index.ts",
-    build: "bun build src/index.ts --target=bun --outfile=dist/index.js",
-    typecheck: "tsc --noEmit",
-    test: "bun test",
-    lint: "eslint . --max-warnings 0",
-    fmt: 'prettier --check "**/*.{ts,js,json,md,yml,yaml}"',
-    "fmt:fix": 'prettier --write "**/*.{ts,js,json,md,yml,yaml}"',
-    verify: "bun run typecheck && bun test && bun run lint && bun run fmt"
-  },
-  dependencies: {
-    "@modelcontextprotocol/sdk": "^1.30.0",
-    zod: "^4.6.5"
-  },
-  devDependencies: {
-    "@eslint/js": "^10.0.1",
-    "@types/bun": "^1.4.2",
-    eslint: "^10.13.0",
-    "eslint-config-prettier": "^10.1.8",
-    prettier: "^3.9.10",
-    typescript: "~5.9.0",
-    "typescript-eslint": "^8.71.1"
-  }
-};
 
 // src/index.ts
-var server = new McpServer({ name: "opencode-delegate", version: package_default.version });
+var pkg = JSON.parse(readFileSync(join2(import.meta.dir, "..", "package.json"), "utf8"));
+var server = new McpServer({ name: "opencode-delegate", version: pkg.version });
 var text = (t, isError = false) => ({
   content: [{ type: "text", text: t }],
   isError
