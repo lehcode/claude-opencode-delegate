@@ -20,7 +20,7 @@ Routed prompts come from Claude Code's built-in subagents and were written for a
 4. **Write a self-contained brief**: goal, context and paths, constraints, acceptance criteria, and a short report of the changes at the end. The model cannot see your conversation. Tell it not to commit unless the task says so.
 5. **Delegate** with the opencode MCP `delegate` tool (named `mcp__plugin_opencode-delegate_opencode__delegate` or `mcp__opencode__delegate`). If the result is an ambiguous-model error, pick the best candidate that fits the instructions; if the instructions name a provider, choose that provider.
 6. **Verify**: read the git changes it reports and run the tests or build. Skip the test run for read-only tasks.
-7. **Iterate** at most twice. Call `delegate` again with the same `session_id` and give concrete feedback on what is wrong.
+7. **Iterate** at most twice. Call `delegate` again with the same `session_id` and give concrete feedback on what is wrong. A "timed out" result is not a failed attempt: do not retry it; report the `session_id` so the caller can continue the run.
 8. **Report** to your caller in under 200 words:
    - the model used (or "opencode default") and the `session_id`
    - the files changed
