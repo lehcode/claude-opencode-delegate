@@ -4,3 +4,5 @@ openspec/
 odd/
 dist/
 CHANGELOG.md
+# Claude Code local settings (globally git-ignored; Prettier does not read the global ignore)
+.claude/settings.local.json
