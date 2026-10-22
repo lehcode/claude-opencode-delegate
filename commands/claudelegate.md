@@ -1,9 +1,9 @@
 ---
-description: Delegate a task to an OpenCode model (e.g. /opencode grok 4.7 -- add input validation to the signup form)
+description: Delegate a task to an OpenCode model (e.g. /claudelegate grok 4.7 -- add input validation to the signup form)
 argument-hint: <model> -- <task>
 ---
 
-Delegate this to an OpenCode model, following the claudelegate skill: $ARGUMENTS
+Delegate this to an OpenCode model, following the delegate skill: $ARGUMENTS
 
 The text before `--` is the model name. If there is no `--`, work out the model name from the text, or leave the model out so OpenCode uses its configured default.
 
