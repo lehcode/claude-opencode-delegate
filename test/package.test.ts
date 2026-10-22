@@ -53,6 +53,13 @@ describe("npm package", () => {
     });
   });
 
+  // Delegation must never block the main thread, even when Claude asks to wait for the worker.
+  test("opencode-worker always runs in the background", () => {
+    const md = readFileSync(join(root, "agents/opencode-worker.md"), "utf8");
+    const frontmatter = md.split(/^---$/m)[1];
+    expect(frontmatter).toMatch(/^background: true$/m);
+  });
+
   test("versions are in sync across manifests", () => {
     const v = readJson("package.json").version;
     expect(readJson(".claude-plugin/plugin.json").version).toBe(v);
