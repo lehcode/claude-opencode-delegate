@@ -23,6 +23,7 @@ describe("npm package", () => {
       "commands/opencode.md",
       "skills/opencode-delegate/SKILL.md",
       "scripts/route-to-opencode.sh",
+      "scripts/guard-main-thread-mcp.sh",
       "plugin-hooks/hooks.json",
       "README.md",
       "LICENSE",

@@ -10,6 +10,16 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "mcp__plugin_opencode-delegate_opencode__delegate.*|mcp__opencode__delegate.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/guard-main-thread-mcp.sh",
+            "timeout": 10
+          }
+        ]
       }
     ]
   }
