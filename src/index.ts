@@ -14,7 +14,19 @@ const pkg = JSON.parse(readFileSync(join(import.meta.dir, "..", "package.json"),
   version: string;
 };
 
-const server = new McpServer({ name: "opencode-delegate", version: pkg.version });
+// Injected into every session's system prompt (unlike tool descriptions, which deferred-tool clients
+// hide until loaded), so this is what makes Claude delegate implementation without being asked.
+const INSTRUCTIONS = `Delegate implementation to OpenCode by default; you stay the orchestrator.
+- Send every self-contained code change (new code, multi-file edits, tests, refactors, boilerplate) to \`delegate\`, or \`delegate_async\` for long or parallel runs. Send broad read-only exploration there too, with \`auto: false\`.
+- Keep for yourself: planning and design decisions, one-line edits, git/commit/PR/delivery, and anything the user asked you to do yourself.
+- The OpenCode model cannot see this conversation: write a self-contained brief (goal, files, constraints, acceptance checks). Omit \`model\` unless the user named one.
+- After it returns, review the reported git changes and run the project's checks before reporting. For fixes, continue with its \`session_id\` instead of redoing the work yourself.
+- If these tools are deferred, load them (search "opencode delegate") before the first call.`;
+
+const server = new McpServer(
+  { name: "opencode-delegate", version: pkg.version },
+  { instructions: INSTRUCTIONS },
+);
 
 const text = (t: string, isError = false) => ({
   content: [{ type: "text" as const, text: t }],
