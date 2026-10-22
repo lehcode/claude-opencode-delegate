@@ -26,7 +26,7 @@ The `opencode` MCP server runs `opencode run` in the project and returns the rep
 | `delegate_async` → `task_result` (`wait_s`) | Long tasks, or several models in parallel. Also `task_list`, `task_cancel`. |
 | `list_sessions`                             | Find a `session_id` to continue.                                            |
 
-In a plugin install the tools are named like `mcp__plugin_opencode-delegate_opencode__delegate`. With a manual install they are `mcp__opencode__delegate`. The worker's `prompt` must be a self-contained brief (the model cannot see this conversation); pass `auto: false` for read-only work, `session_id` to continue.
+In a plugin install the tools are named like `mcp__plugin_claudelegate_opencode__delegate`. With a manual install they are `mcp__opencode__delegate`. The worker's `prompt` must be a self-contained brief (the model cannot see this conversation); pass `auto: false` for read-only work, `session_id` to continue.
 
 ## Modes
 

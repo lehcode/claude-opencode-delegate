@@ -1,4 +1,4 @@
-# claude-opencode-delegate
+# claudelegate
 
 A Claude Code plugin that delegates scoped tasks to any model available in your [OpenCode](https://opencode.ai) install (Grok, Kimi, GLM, Qwen, DeepSeek, MiMo, MiniMax, …). Claude stays the orchestrator: it hands over the task, then reviews the diff and runs the tests.
 
@@ -20,7 +20,7 @@ claude ▸ reads git diff, runs tests, reports which model did what and a verdic
 | Hook    | `scripts/guard-main-thread-mcp.sh`          | PreToolUse hook (`plugin-hooks/hooks.json`): denies `delegate`/`delegate_async` calls from the main thread |
 | MCP     | `plugin.json` `mcpServers`, `dist/index.js` | `opencode` MCP server (bundled from `src/index.ts`): `delegate` and friends, called by `opencode-worker`   |
 
-The MCP server exposes seven tools: `delegate` (run and wait), `delegate_async` (background run, returns a task id), `task_result`, `task_list`, `task_cancel`, `list_models` and `list_sessions`. Only `opencode-worker` calls them: the main thread spawns the worker in the background, because `delegate` blocks the main thread and `delegate_async` tasks are lost when `/reload-plugins` restarts the server. A PreToolUse hook denies `delegate` and `delegate_async` calls made without an `agent_id` (the main thread). `dist/index.js` is a committed bundle (the installed plugin cache has no `node_modules`); rebuild it with `bun run build` after changing `src/`, CI fails if it is stale. Claude Desktop is not supported.
+The MCP server exposes seven tools: `delegate` (run and wait), `delegate_async` (background run, returns a task id), `task_result`, `task_list`, `task_cancel`, `list_models` and `list_sessions`. Only `opencode-worker` calls them: the main thread spawns the worker in the background, because `delegate` blocks the main thread and `delegate_async` tasks are lost when `/reload-plugins` restarts the server. A PreToolUse hook denies `delegate` and `delegate_async` calls made without an `agent_id` (the main thread). `dist/index.js` is a committed bundle (the installed plugin cache has no `node_modules`); rebuild it with `bun run build` after changing `src/`, CI fails if it is stale. Claude Desktop is not supported. A PreToolUse hook denies `delegate` and `delegate_async` calls made from the main thread, with a reason telling Claude to spawn `claudelegate:opencode-worker` in the background. Claude Code puts `agent_id` in the hook input only inside a subagent, so calls from the worker pass through. It passes through as well when `OPENCODE_DELEGATE_ROUTE` is falsy, `jq` is missing, or the input is not valid JSON.
 
 ## How it works
 
@@ -48,7 +48,7 @@ The run uses your existing OpenCode auth, config, agents and permission rules.
 
 The MCP server sends `instructions` that clients inject into every session's system prompt, even when the tools are deferred; they make delegation the default for self-contained implementation and broad read-only exploration, and define delegating as spawning `opencode-worker` subagents in the background (one per independent task, parallel when files do not overlap) so the main thread is never blocked; the `delegate`, `delegate_async` and `task_*` tools belong to the worker and the main thread never calls them; Claude keeps planning, one-line edits, git and delivery, and anything the user asked it to do itself; the text lives in `INSTRUCTIONS` in `src/index.ts`.
 
-A plugin PreToolUse hook (`scripts/route-to-opencode.sh`, wired by `plugin-hooks/hooks.json`) rewrites `Agent`/`Task` calls to Claude Code's built-in subagents into a call to `opencode-delegate:opencode-worker` on Haiku. The `description` and any other input keys are kept; the worker runs the task through MCP `delegate` using OpenCode's configured default model. The prompt is kept as is for `general-purpose` and untyped calls. `Explore`, `Plan` and `claude-code-guide` calls get a `Read-only task (routed from the ... subagent).` prefix, which forces the worker into read-only mode. `statusline-setup` gets a `Routed from the ... subagent.` note; `claude` is kept as is. Only these built-ins are routed: custom, project, user and plugin agents (reviewers and SDD agents included, and `opencode-worker` itself) are never routed and stay on Claude.
+A plugin PreToolUse hook (`scripts/route-to-opencode.sh`, wired by `plugin-hooks/hooks.json`) rewrites `Agent`/`Task` calls to Claude Code's built-in subagents into a call to `claudelegate:opencode-worker` on Haiku. The `description` and any other input keys are kept; the worker runs the task through MCP `delegate` using OpenCode's configured default model. The prompt is kept as is for `general-purpose` and untyped calls. `Explore`, `Plan` and `claude-code-guide` calls get a `Read-only task (routed from the ... subagent).` prefix, which forces the worker into read-only mode. `statusline-setup` gets a `Routed from the ... subagent.` note; `claude` is kept as is. Only these built-ins are routed: custom, project, user and plugin agents (reviewers and SDD agents included, and `opencode-worker` itself) are never routed and stay on Claude.
 
 The hook never blocks. It passes the call through unchanged when:
 
@@ -58,7 +58,7 @@ The hook never blocks. It passes the call through unchanged when:
 - The prompt contains the literal `[no-opencode]` (per-task opt-out).
 - `jq` is missing, or the hook input is not valid JSON.
 
-A second PreToolUse hook (`scripts/guard-main-thread-mcp.sh`) denies `delegate` and `delegate_async` calls (tool names `mcp__plugin_opencode-delegate_opencode__*` and `mcp__opencode__*`) made from the main thread, with a reason telling Claude to spawn `opencode-delegate:opencode-worker` in the background. Claude Code puts `agent_id` in the hook input only inside a subagent, so calls from the worker pass through. It passes through as well when `OPENCODE_DELEGATE_ROUTE` is falsy, `jq` is missing, or the input is not valid JSON.
+A second PreToolUse hook (`scripts/guard-main-thread-mcp.sh`) denies `delegate` and `delegate_async` calls (tool names `mcp__plugin_claudelegate_opencode__*` and `mcp__opencode__*`) made from the main thread, with a reason telling Claude to spawn `claudelegate:opencode-worker` in the background. Claude Code puts `agent_id` in the hook input only inside a subagent, so calls from the worker pass through. It passes through as well when `OPENCODE_DELEGATE_ROUTE` is falsy, `jq` is missing, or the input is not valid JSON.
 
 Because the hooks are shipped in `plugin-hooks/`, not `hooks/` (which holds this repo's git hooks), they take effect after the plugin is installed or refreshed.
 
@@ -71,15 +71,15 @@ Because the hooks are shipped in `plugin-hooks/`, not `hooks/` (which holds this
 ## Install
 
 ```text
-/plugin marketplace add lehcode/claude-opencode-delegate
-/plugin install opencode-delegate@claude-opencode-delegate
+/plugin marketplace add lehcode/claudelegate
+/plugin install claudelegate@claudelegate
 ```
 
 To use a local clone, add it as a directory marketplace: `/plugin marketplace add /path/to/clone`. After pulling changes, refresh the plugin (`/plugin` → update, or reinstall).
 
 ### As a standalone MCP server (npm)
 
-The MCP server is also published to npm as `@lehcode/claude-opencode-delegate` (needs [Bun](https://bun.sh)). Register it in any MCP client with command `bunx` and args `["@lehcode/claude-opencode-delegate"]`; see `examples/claude_desktop_config.json`.
+The MCP server is also published to npm as `@lehcode/claudelegate` (needs [Bun](https://bun.sh)). Register it in any MCP client with command `bunx` and args `["@lehcode/claudelegate"]`; see `examples/claude_desktop_config.json`.
 
 ## Usage
 
@@ -161,7 +161,7 @@ git config core.hooksPath hooks/   # pre-commit (staged lint/format), pre-push (
 
 Releases are automated by [release-please](https://github.com/googleapis/release-please) (`.github/workflows/release.yml`). Conventional commits merged to `main` open or update a release PR that bumps `package.json`, `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` and writes `CHANGELOG.md`; merging it creates the `vX.Y.Z` tag and GitHub release and publishes to npm via trusted publishing (OIDC, no token, provenance automatic). Never edit versions by hand.
 
-- The first publish must be manual (`npm publish --access public`); then add a trusted publisher in the package settings on npmjs.com (repository `lehcode/claude-opencode-delegate`, workflow `release.yml`).
+- The first publish must be manual (`npm publish --access public`); then add a trusted publisher in the package settings on npmjs.com (repository `lehcode/claudelegate`, workflow `release.yml`).
 - Release PRs created with the default `GITHUB_TOKEN` do not trigger CI; to run CI on them, add a `RELEASE_PLEASE_TOKEN` secret (PAT or app token with `contents` and `pull-requests` write). Optional.
 
 ## License
