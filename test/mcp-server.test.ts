@@ -58,7 +58,7 @@ async function listTools(entry: string): Promise<Tool[]> {
   }
 }
 
-describe.each(["src/index.ts"])("MCP server (%s)", (entry) => {
+describe.each(["src/index.ts", "dist/index.js"])("MCP server (%s)", (entry) => {
   test("tools/list exposes the 7 tools and delegate requires prompt", async () => {
     const tools = await listTools(entry);
     expect(tools.map((t) => t.name).sort()).toEqual(EXPECTED);
