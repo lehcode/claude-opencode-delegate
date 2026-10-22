@@ -61,6 +61,23 @@ describe("npm package", () => {
     expect(frontmatter).toMatch(/^background: true$/m);
   });
 
+  // The worker supervises; OpenCode writes. Without edit tools it has no direct way to spend Claude tokens writing the solution (Bash stays, for tests).
+  test("opencode-worker has no edit tools", () => {
+    const md = readFileSync(join(root, "agents/opencode-worker.md"), "utf8");
+    const tools = /^tools: (.*)$/m.exec(md.split(/^---$/m)[1] ?? "")?.[1] ?? "";
+    const mcp = "mcp__plugin_opencode-delegate_opencode__";
+    expect(tools.split(/,\s*/)).toEqual([
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "ToolSearch",
+      `${mcp}delegate`,
+      `${mcp}list_models`,
+      `${mcp}list_sessions`,
+    ]);
+  });
+
   test("versions are in sync across manifests", () => {
     const v = readJson("package.json").version;
     expect(readJson(".claude-plugin/plugin.json").version).toBe(v);
