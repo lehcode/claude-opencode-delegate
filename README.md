@@ -14,7 +14,7 @@ claude ▸ reads git diff, runs tests, reports which model did what and a verdic
 | Surface | File                                        | Role                                                                                                       |
 | ------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | Skill   | `skills/opencode-delegate/SKILL.md`         | Model picking, brief template, review-after-return rules                                                   |
-| Agent   | `agents/opencode-worker.md`                 | Supervisor (`model: haiku`, `background: true`, all tools): calls MCP `delegate`, verifies, iterates       |
+| Agent   | `agents/opencode-worker.md`                 | Supervisor (`model: haiku`, `background: true`, no edit tools): calls MCP `delegate`, verifies, iterates   |
 | Command | `commands/opencode.md`                      | `/opencode <model> -- <task>`: splits on `--`, spawns `opencode-worker`                                    |
 | Hook    | `scripts/route-to-opencode.sh`              | PreToolUse hook (`plugin-hooks/hooks.json`): reroutes built-in subagent calls to `opencode-worker`         |
 | Hook    | `scripts/guard-main-thread-mcp.sh`          | PreToolUse hook (`plugin-hooks/hooks.json`): denies `delegate`/`delegate_async` calls from the main thread |
