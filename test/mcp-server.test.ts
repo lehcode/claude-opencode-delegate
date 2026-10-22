@@ -19,7 +19,16 @@ interface Tool {
   inputSchema: { required?: string[] };
 }
 
+interface Handshake {
+  instructions?: string;
+  tools: Tool[];
+}
+
 async function listTools(entry: string): Promise<Tool[]> {
+  return (await handshake(entry)).tools;
+}
+
+async function handshake(entry: string): Promise<Handshake> {
   const proc = Bun.spawn(["bun", join(root, entry)], {
     stdin: "pipe",
     stdout: "pipe",
@@ -44,6 +53,7 @@ async function listTools(entry: string): Promise<Tool[]> {
   const reader = proc.stdout.getReader();
   const dec = new TextDecoder();
   let buf = "";
+  let instructions: string | undefined;
   try {
     while (true) {
       const { value, done } = await reader.read();
@@ -52,7 +62,8 @@ async function listTools(entry: string): Promise<Tool[]> {
       for (const line of buf.split("\n")) {
         if (!line.trim()) continue;
         const msg = JSON.parse(line);
-        if (msg.id === 2) return msg.result.tools as Tool[];
+        if (msg.id === 1) instructions = msg.result.instructions;
+        if (msg.id === 2) return { instructions, tools: msg.result.tools as Tool[] };
       }
     }
   } finally {
@@ -66,6 +77,17 @@ describe.each(["src/index.ts", "dist/index.js"])("MCP server (%s)", (entry) => {
     expect(tools.map((t) => t.name).sort()).toEqual(EXPECTED);
     const d = tools.find((t) => t.name === "delegate");
     expect(d?.inputSchema.required).toContain("prompt");
+  }, 15000);
+
+  // Clients inject server instructions into every session's system prompt even when the tools
+  // themselves are deferred, so this is what makes Claude delegate without being asked.
+  test("initialize sends instructions that make delegation the default for implementation", async () => {
+    const { instructions } = await handshake(entry);
+    expect(instructions).toBeString();
+    expect(instructions).toContain("delegate");
+    expect(instructions).toContain("delegate_async");
+    expect(instructions).toMatch(/by default/i);
+    expect(instructions).toMatch(/review/i);
   }, 15000);
 });
 
