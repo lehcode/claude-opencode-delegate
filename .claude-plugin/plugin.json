@@ -6,5 +6,6 @@
   "homepage": "https://github.com/lehcode/claude-opencode-delegate",
   "repository": "https://github.com/lehcode/claude-opencode-delegate",
   "license": "MIT",
+  "hooks": "./plugin-hooks/hooks.json",
   "keywords": ["opencode", "delegate", "subagent", "grok", "kimi", "glm", "qwen", "deepseek"]
 }
