@@ -17,6 +17,7 @@
     "delegate"
   ],
   "files": [
+    "dist",
     "src",
     "skills",
     "agents",
@@ -29,6 +30,8 @@
     "bun": ">=1.1"
   },
   "scripts": {
+    "start": "bun src/index.ts",
+    "build": "bun build src/index.ts --target=bun --outfile=dist/index.js",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "lint": "eslint . --max-warnings 0",
@@ -36,7 +39,10 @@
     "fmt:fix": "prettier --write \"**/*.{ts,js,json,md,yml,yaml}\"",
     "verify": "bun run typecheck && bun test && bun run lint && bun run fmt"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.6.5"
+  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/bun": "^1.4.2",
