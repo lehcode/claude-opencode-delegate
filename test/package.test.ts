@@ -17,7 +17,6 @@ describe("npm package", () => {
     const files: string[] = (report as { files: { path: string }[] }).files.map((f) => f.path);
     for (const f of [
       "dist/index.js",
-      ".mcp.json",
       ".claude-plugin/plugin.json",
       ".claude-plugin/marketplace.json",
       "agents/opencode-worker.md",
@@ -43,6 +42,15 @@ describe("npm package", () => {
     const p = join(root, pkg.bin["claude-opencode-delegate"]);
     accessSync(p, constants.X_OK);
     expect(readFileSync(p, "utf8").startsWith("#!/usr/bin/env bun\n")).toBe(true);
+  });
+
+  // A root .mcp.json doubles as this repo's project MCP config, where ${CLAUDE_PLUGIN_ROOT} is unset
+  // (`claude doctor`: "Missing environment variables: CLAUDE_PLUGIN_ROOT"). Declare it in plugin.json.
+  test("the MCP server is declared inline in plugin.json, not in a root .mcp.json", () => {
+    expect(() => accessSync(join(root, ".mcp.json"))).toThrow();
+    expect(readJson(".claude-plugin/plugin.json").mcpServers).toEqual({
+      opencode: { command: "bun", args: ["${CLAUDE_PLUGIN_ROOT}/dist/index.js"] },
+    });
   });
 
   test("versions are in sync across manifests", () => {
