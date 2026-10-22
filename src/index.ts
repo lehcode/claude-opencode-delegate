@@ -16,12 +16,12 @@ const pkg = JSON.parse(readFileSync(join(import.meta.dir, "..", "package.json"),
 
 // Injected into every session's system prompt (unlike tool descriptions, which deferred-tool clients
 // hide until loaded), so this is what makes Claude delegate implementation without being asked.
-const INSTRUCTIONS = `Delegate implementation to OpenCode by default; you stay the orchestrator.
-- Send every self-contained code change (new code, multi-file edits, tests, refactors, boilerplate) to \`delegate\`, or \`delegate_async\` for long or parallel runs. Send broad read-only exploration there too, with \`auto: false\`.
+const INSTRUCTIONS = `Delegate implementation to OpenCode by default; you stay the orchestrator. Delegating means spawning background agents, never blocking the main thread.
+- Launch the \`opencode-delegate:opencode-worker\` subagent (Agent tool, in the background; set \`run_in_background: true\` where the Agent tool offers it) for every self-contained code change (new code, multi-file edits, tests, refactors, boilerplate) and for broad read-only exploration (say "read-only" in its prompt). Spawn one worker per independent task, in parallel when they do not edit the same files, and keep working while they run.
+- Do not call the \`delegate\` tool for this: it blocks the main thread until OpenCode finishes. Use \`delegate\` or \`delegate_async\` only when the user asks for the MCP tools or no Agent tool is available; if they are deferred, load them (search "opencode delegate") first.
 - Keep for yourself: planning and design decisions, one-line edits, git/commit/PR/delivery, and anything the user asked you to do yourself.
-- The OpenCode model cannot see this conversation: write a self-contained brief (goal, files, constraints, acceptance checks). Omit \`model\` unless the user named one.
-- After it returns, review the reported git changes and run the project's checks before reporting. For fixes, continue with its \`session_id\` instead of redoing the work yourself.
-- If these tools are deferred, load them (search "opencode delegate") before the first call.`;
+- The OpenCode model cannot see this conversation: give the worker a self-contained brief (goal, files, constraints, acceptance checks). Name a model only if the user named one.
+- When a worker reports back, review its git changes and run the project's checks before reporting. For fixes, spawn the worker again with its session id and precise feedback instead of redoing the work yourself.`;
 
 const server = new McpServer(
   { name: "opencode-delegate", version: pkg.version },
