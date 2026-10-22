@@ -1,14 +1,18 @@
 #!/usr/bin/env bun
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { resolve } from "node:path";
+import { readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { z } from "zod";
 import { config } from "./config.ts";
 import { delegate, formatOutcome } from "./delegate.ts";
 import { listModels } from "./models.ts";
 import { execText } from "./opencode.ts";
 import { getTask, listTasks, startTask, waitTask, type Task } from "./tasks.ts";
-import pkg from "../package.json" with { type: "json" };
+// Read at runtime (not bundled) so release-please version bumps never make dist/ stale.
+const pkg = JSON.parse(readFileSync(join(import.meta.dir, "..", "package.json"), "utf8")) as {
+  version: string;
+};
 
 const server = new McpServer({ name: "opencode-delegate", version: pkg.version });
 
