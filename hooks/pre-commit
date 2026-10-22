@@ -33,5 +33,20 @@ else
   echo "  (no .ts files in src/ staged, skipping)"
 fi
 
+# 3. Vale prose lint
+PROSE_FILES=$(echo "$STAGED" | grep -E '^[^/]+\.md$|^docs/.+\.md$' | grep -vE '(^|/)(\.atl|plans?|odd)/' | grep -vE '^(CHANGELOG|CLAUDE|AGENTS)\.md$' || true)
+if [ -z "$PROSE_FILES" ]; then
+  echo "  (no prose files staged, skipping)"
+elif ! command -v vale >/dev/null 2>&1; then
+  echo "  ⚠ vale not found, skipping prose lint (install: https://vale.sh)"
+else
+  if [ ! -d .vale/styles/Microsoft ]; then
+    vale --no-global sync
+  fi
+  echo "  📝 Vale prose lint..."
+  vale --no-global $PROSE_FILES
+  echo "  ✓ Vale passed"
+fi
+
 echo "✅ Pre-commit hooks passed"
 exit 0
