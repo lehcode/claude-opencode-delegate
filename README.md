@@ -30,11 +30,13 @@ Claude Code / Claude Desktop / subagent / workflow
 opencode-delegate skill/agent files
         │  guide Claude
         ▼
-opencode run --format json -m <provider/model> [--auto] [--session …]
+opencode-worker agent (Bash only)
+        │  runs one command
+        ▼
+opencode run --format json --agent build --auto [-m <provider/model>] [--session …] -- "<prompt>"
 ```
 
-OpenCode is invoked directly via the slash command (`/opencode`) or the `opencode-worker` agent.
-No MCP server, no stdio transport, no bun bundler.
+The `opencode-worker` agent is a thin forwarder: it resolves the model, prefixes the task with a short memory-restore preamble (OpenCode restores its own context from engram, Graphiti and codegraph), runs `opencode run` directly, and reports the session id, the reply and the changed files. Write tasks use `--agent build --auto`; read-only tasks use `--agent plan` without `--auto`. No MCP server, no stdio transport, no bun bundler.
 
 The `opencode` CLI uses your existing OpenCode auth, config, agents, and permission rules. It
 does not use a separate API.
@@ -68,38 +70,25 @@ Talk to Claude normally:
 
 ### Model names
 
-You can use exact ids (`opencode-go/grok-4.7`) or loose names (`grok 4.7`, `kimi k3`,
-`deepseek v4 flash`).
+You can use exact ids (`opencode-go/grok-4.7`) or loose names (`grok 4.7`, `kimi k3`, `deepseek v4 flash`).
 
-- If the same model is offered by several providers, the model maker's own provider wins over
-  resellers such as `opencode-go`, `opencode`, and `openrouter`. So `grok 4.7` resolves to
-  `xai/grok-4.7`.
-- A provider word in the name overrides that, so "opencode-go grok 4.7" resolves to
-  `opencode-go/grok-4.7`. To set your own order, use `OPENCODE_DELEGATE_PREFERRED_PROVIDERS`.
+- A loose name is resolved by the `opencode-worker` agent against the output of `opencode models`, to a single exact `provider/model`.
 - A version you name must match exactly, so `grok 4.7` never silently becomes 4.6.
-- If a name matches several different models, you get a list of candidates instead of a guess. For
-  example, `mimo` matches several MiMo models.
+- If a name matches several different models, you get a list of candidates instead of a guess. For example, `mimo` matches several MiMo models.
 - Add `#variant` for a reasoning variant: `xai/grok-4.7#high`.
-- If you don't name a model, tasks that edit files use `opencode-go/muse-spark-1.3-contributor`.
-  Read-only tasks (`auto: false`) use the free `opencode/muse-spark-1.3-contributor-free`. You can
-  change both with the env vars below.
+- If you don't name a model, `-m` is omitted and OpenCode uses its own configured default model.
 
 ### Slash command
 
-`/opencode <model> -- <task>` — delegate to an OpenCode model. The slash command expands the
-brief, spawns an `opencode-worker` subagent, and waits for the result.
+`/opencode <model> -- <task>` — delegate to an OpenCode model. The slash command passes the task to an `opencode-worker` subagent and waits for the result, then reviews the diff and runs the tests.
 
 ### Agent
 
-The `opencode-worker` agent is a ready-made supervisor. Give it a model and task — it gathers
-context, writes the brief, delegates, verifies, iterates, and reports.
+The `opencode-worker` agent is a ready-made forwarder. Give it a model and task — it runs `opencode run` and reports the session id, the reply and the changed files. It does not review or retry; Claude reviews, and iterates by invoking the agent again with the session id and feedback.
 
 ### Permissions
 
-By default the delegated model runs with `--auto`. It can edit files and run commands without
-asking, but any rule you set to `deny` in your OpenCode config is still enforced. Pass
-`auto: false`, or set `OPENCODE_DELEGATE_AUTO=false`, for read-only runs. Claude is told to review
-every change it gets back.
+Write tasks run with `--agent build --auto`. The delegated model can edit files and run commands without asking, but any rule you set to `deny` in your OpenCode config is still enforced. Read-only tasks (reviews, questions, second opinions) run with `--agent plan` and without `--auto`, so permission requests are rejected. Claude is told to review every change it gets back.
 
 ### Using it from workflows
 
@@ -107,6 +96,8 @@ Workflow `agent()` calls and subagents can use the `opencode-worker` agent direc
 tasks that edit files, give each one its own `git worktree` so they don't conflict.
 
 ## Configuration (env vars)
+
+The `opencode-worker` agent honors only `OPENCODE_BIN`. The other variables are read only by the `src/` library.
 
 | Variable                                | Default                                    | Description                                                                                                  |
 | --------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |

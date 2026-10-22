@@ -5,11 +5,8 @@ argument-hint: <model> -- <task>
 
 Delegate this to an OpenCode model, following the opencode-delegate skill: $ARGUMENTS
 
-The text before `--` is the model name. If there is no `--`, work out the model name from the
-text, or leave the model out.
+The text before `--` is the model name. If there is no `--`, work out the model name from the text, or leave the model out so OpenCode uses its configured default.
 
-The text after `--` is the task. Before spawning the subagent, expand it into a self-contained brief
-using what you know about this project.
+The text after `--` is the task. Pass it to the `opencode-worker` agent essentially verbatim, with the model name and mode (write by default, read-only for reviews and questions). Do not expand it into a long brief: OpenCode restores its own context from engram, Graphiti and codegraph. Add only constraints or a done-when that the task lacks.
 
-When the subagent returns, review its git changes, run the relevant tests, and give me a summary. The
-summary should say which model did the work, what it changed, and your verdict.
+When the agent returns, review the git diff, run the relevant tests, and give me a summary. The summary should say which model did the work, what it changed, and your verdict.
