@@ -143,17 +143,17 @@ git config core.hooksPath hooks/   # pre-commit (staged lint/format), pre-push (
 
 `src/index.ts` is the MCP server entry point (`bun run start`, bundled to `dist/index.js` by `bun run build`); it builds on the `delegate`, `resolveModel`, `buildArgs` and `EventCollector` modules, which also document how `opencode run` is invoked and its JSON stream parsed. Changing `src/` changes the MCP tools, so rebuild and commit `dist/`. The provider preference (direct provider over an aggregator, `OPENCODE_DELEGATE_PREFERRED_PROVIDERS` first) applies to the MCP server only, not to the worker. Variables read by `src/config.ts`:
 
-| Variable                                | Default             | Description                                                       |
-| --------------------------------------- | ------------------- | ----------------------------------------------------------------- |
-| `OPENCODE_BIN`                          | auto-detected       | Path to `opencode`                                                |
-| `OPENCODE_DELEGATE_DEFAULT_MODEL`       | see `src/config.ts` | Model when none given; empty string means OpenCode's own default  |
-| `OPENCODE_DELEGATE_READ_MODEL`          | see `src/config.ts` | Model when none given and `auto` is false; empty string as above  |
-| `OPENCODE_DELEGATE_AUTO`                | `true`              | Default for `auto`; `0`, `false`, `no`, `off` disable it          |
-| `OPENCODE_DELEGATE_TIMEOUT`             | `1800`              | Seconds before a run is killed                                    |
-| `OPENCODE_DELEGATE_MAX_OUTPUT`          | `40000`             | Maximum response characters returned                              |
-| `OPENCODE_DELEGATE_THINKING`            | `true`              | Include reasoning blocks in output                                |
-| `OPENCODE_DELEGATE_CWD`                 | process cwd         | Base working directory                                            |
-| `OPENCODE_DELEGATE_PREFERRED_PROVIDERS` | none                | Comma-separated provider order when a model has several providers |
+| Variable                                | Default       | Description                                                                                                                        |
+| --------------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `OPENCODE_BIN`                          | auto-detected | Path to `opencode`                                                                                                                 |
+| `OPENCODE_DELEGATE_DEFAULT_MODEL`       | unset         | Model when none given; unset or empty means OpenCode's configured default                                                          |
+| `OPENCODE_DELEGATE_READ_MODEL`          | unset         | Model when none given and `auto` is false; unset or empty falls back to `OPENCODE_DELEGATE_DEFAULT_MODEL`, then OpenCode's default |
+| `OPENCODE_DELEGATE_AUTO`                | `true`        | Default for `auto`; `0`, `false`, `no`, `off` disable it                                                                           |
+| `OPENCODE_DELEGATE_TIMEOUT`             | `1800`        | Seconds before a run is killed                                                                                                     |
+| `OPENCODE_DELEGATE_MAX_OUTPUT`          | `40000`       | Maximum response characters returned                                                                                               |
+| `OPENCODE_DELEGATE_THINKING`            | `true`        | Include reasoning blocks in output                                                                                                 |
+| `OPENCODE_DELEGATE_CWD`                 | process cwd   | Base working directory                                                                                                             |
+| `OPENCODE_DELEGATE_PREFERRED_PROVIDERS` | none          | Comma-separated provider order when a model has several providers                                                                  |
 
 ## Releasing
 
