@@ -43,10 +43,8 @@ export const config = {
   bin: resolveBin(),
   // No built-in fallback: unset means `-m` is omitted and opencode's configured default model is used.
   // Previously hardcoded: "opencode-go/muse-spark-1.3-contributor" (it overrode the user's opencode config).
+  // Applies to read-only runs (auto: false) too; the separate OPENCODE_DELEGATE_READ_MODEL was removed.
   defaultModel: model(process.env.OPENCODE_DELEGATE_DEFAULT_MODEL, undefined),
-  // Used when no model is given and the run is read-only (auto: false): reading, reviews, questions.
-  // Previously hardcoded: "opencode/muse-spark-1.3-contributor-free".
-  readModel: model(process.env.OPENCODE_DELEGATE_READ_MODEL, undefined),
   auto: bool(process.env.OPENCODE_DELEGATE_AUTO, true),
   timeoutSec: int(process.env.OPENCODE_DELEGATE_TIMEOUT, 1800),
   maxOutputChars: int(process.env.OPENCODE_DELEGATE_MAX_OUTPUT, 40000),
