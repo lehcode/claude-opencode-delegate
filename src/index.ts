@@ -58,6 +58,10 @@ const delegateShape = {
     .describe(
       `Auto-approve tool permissions (edits, shell) that are not explicitly denied. Default: ${config.auto}. Set false for read-only work (reading files, reviews, questions); without a model that also selects the free read model.`,
     ),
+  thinking: z
+    .boolean()
+    .optional()
+    .describe("Show thinking/reasoning blocks in the output. Default: true."),
   title: z.string().optional().describe("Session title shown in opencode."),
   timeout_s: z
     .number()
