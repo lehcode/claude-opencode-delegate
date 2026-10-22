@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # pre-commit: lint and format-check staged files only.
-# Skips if no staged files or only docs changed.
+# Skips if no staged files or only non-code docs changed.
 
 echo "🔍 Running pre-commit hooks..."
 
@@ -23,14 +23,14 @@ else
   echo "  (no formatable files staged, skipping)"
 fi
 
-# 2. ESLint on staged .ts files only
-TS_FILES=$(echo "$STAGED" | grep -E '\.ts$' || true)
+# 2. ESLint on staged .ts files only (core lib only)
+TS_FILES=$(echo "$STAGED" | grep -E '^\s*src/.*\.ts$' || true)
 if [ -n "$TS_FILES" ]; then
   echo "  📋 ESLint on staged files..."
   npx eslint $TS_FILES
   echo "  ✓ ESLint passed"
 else
-  echo "  (no .ts files staged, skipping)"
+  echo "  (no .ts files in src/ staged, skipping)"
 fi
 
 echo "✅ Pre-commit hooks passed"

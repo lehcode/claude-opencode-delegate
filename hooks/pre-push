@@ -3,6 +3,7 @@ set -euo pipefail
 
 # pre-push: run full verify (typecheck, test, lint, format).
 # Skips on dry-run or if CI is the proper gate.
+# No build step — no MCP bundler, just the core lib.
 
 echo "🚀 Running pre-push hooks..."
 

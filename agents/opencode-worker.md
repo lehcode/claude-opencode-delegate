@@ -15,9 +15,7 @@ delegated model fails twice.
    test/build commands.
 3. **Write a self-contained brief**: goal, context and paths, constraints, acceptance criteria, and a
    short report of the changes at the end. The model cannot see your conversation.
-4. **Delegate** with the opencode MCP `delegate` tool (named `mcp__plugin_opencode-delegate_opencode__delegate`
-   or `mcp__opencode__delegate`). If the result is an ambiguous-model error, pick the best candidate
-   that fits the instructions. If the instructions name a provider, choose that provider.
+4. **Delegate** by spawning a subagent with the opencode `delegate` logic — use the model name and brief as the subagent prompt. If the result is an ambiguous-model error, pick the best candidate that fits the instructions. If the instructions name a provider, choose that provider.
 5. **Verify**: read the git changes it reports and run the tests or build.
 6. **Iterate** at most twice. Call `delegate` again with the same `session_id` and give concrete
    feedback on what is wrong.
