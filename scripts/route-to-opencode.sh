@@ -2,7 +2,7 @@
 set -uo pipefail
 
 # PreToolUse hook (matcher: Agent|Task): reroute Claude Code's built-in subagent calls
-# to opencode-delegate:opencode-worker on Haiku. Explore/Plan/claude-code-guide prompts
+# to claudelegate:opencode-worker on Haiku. Explore/Plan/claude-code-guide prompts
 # get a read-only prefix, statusline-setup a routed-from note; general-purpose, claude
 # and untyped prompts are kept as is. Custom and plugin agents are never routed.
 # Never blocks: every guard below passes the call through unchanged (exit 0, no stdout).
@@ -61,8 +61,8 @@ printf '%s' "$input" | jq -c '
     hookSpecificOutput: {
       hookEventName: "PreToolUse",
       permissionDecision: "allow",
-      permissionDecisionReason: ("routed " + $name + " to opencode-worker"),
-      updatedInput: (.tool_input + {subagent_type: "opencode-delegate:opencode-worker", model: "haiku"}
+      permissionDecisionReason: ("routed " + $name + " to claudelegate:opencode-worker"),
+      updatedInput: (.tool_input + {subagent_type: "claudelegate:opencode-worker", model: "haiku"}
         + (if .tool_input | has("prompt") then {prompt: $newp} else {} end))
     }
   }'

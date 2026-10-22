@@ -20,7 +20,7 @@ const call = (toolName: string, extra: Record<string, unknown> = {}) =>
     ...extra,
   });
 
-const PLUGIN = "mcp__plugin_opencode-delegate_opencode__";
+const PLUGIN = "mcp__plugin_claudelegate_opencode__";
 const MANUAL = "mcp__opencode__";
 
 const expectDeny = (r: ReturnType<typeof run>) => {
@@ -28,7 +28,7 @@ const expectDeny = (r: ReturnType<typeof run>) => {
   const o = JSON.parse(r.out).hookSpecificOutput;
   expect(o.hookEventName).toBe("PreToolUse");
   expect(o.permissionDecision).toBe("deny");
-  expect(o.permissionDecisionReason).toContain("opencode-delegate:opencode-worker");
+  expect(o.permissionDecisionReason).toContain("claudelegate:opencode-worker");
 };
 
 const expectPassThrough = (r: ReturnType<typeof run>) => {
