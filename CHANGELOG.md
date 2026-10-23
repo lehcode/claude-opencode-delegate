@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/lehcode/claudelegate/compare/v0.2.1...v0.2.2) (2026-10-23)
+
+
+### Documentation
+
+* **changelog:** point commit links at the rewritten history ([28209be](https://github.com/lehcode/claudelegate/commit/28209be7cb697efcbf5bd6c1301df86dd595ff6c))
+
 ## [0.2.1](https://github.com/lehcode/claudelegate/compare/v0.2.0...v0.2.1) (2026-10-23)
 
 
