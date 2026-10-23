@@ -21543,8 +21543,9 @@ import { isAbsolute, resolve } from "path";
 
 // src/opencode.ts
 import { spawn } from "child_process";
+import { resolve as resolvePath } from "path";
 function buildArgs(o) {
-  const args = ["run", "--format", "json"];
+  const args = ["run", "--format", "json", "--standalone"];
   if (o.model)
     args.push("--model", o.model);
   if (o.agent)
@@ -21642,13 +21643,55 @@ function errorMessage(err) {
   const ref = getProp(err, "data", "ref");
   return typeof msg === "string" ? msg + (ref ? ` (ref ${ref})` : "") : JSON.stringify(err);
 }
+var SUBAGENT_DENY = { action: "subagent", resource: "*", effect: "deny" };
+function withSubagentDeny(existing) {
+  if (existing == null || existing.trim() === "") {
+    return JSON.stringify({ permissions: [SUBAGENT_DENY] });
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(existing);
+  } catch {
+    throw new Error("OPENCODE_CONFIG_CONTENT is not a JSON object with a permissions array; refusing to run without the subagent deny");
+  }
+  if (parsed != null && typeof parsed === "object" && !Array.isArray(parsed)) {
+    const obj = parsed;
+    if (obj.permissions === undefined || Array.isArray(obj.permissions)) {
+      const perms = obj.permissions === undefined ? [] : obj.permissions;
+      perms.push(SUBAGENT_DENY);
+      return JSON.stringify({ ...obj, permissions: perms });
+    }
+  }
+  throw new Error("OPENCODE_CONFIG_CONTENT is not a JSON object with a permissions array; refusing to run without the subagent deny");
+}
+function childEnv(cwd, extra = {}) {
+  return { ...process.env, PWD: resolvePath(cwd ?? process.cwd()), ...extra };
+}
 function runOpencode(o) {
   const started = Date.now();
   const collector = new EventCollector;
+  let configContent;
+  try {
+    configContent = withSubagentDeny(process.env.OPENCODE_CONFIG_CONTENT);
+  } catch (err) {
+    return Promise.resolve({
+      ok: false,
+      sessionId: undefined,
+      text: "",
+      toolCalls: [],
+      tokens: { input: 0, output: 0, reasoning: 0, cacheRead: 0, cacheWrite: 0 },
+      cost: 0,
+      steps: 0,
+      error: err instanceof Error ? err.message : String(err),
+      exitCode: null,
+      timedOut: false,
+      durationMs: Date.now() - started
+    });
+  }
   return new Promise((resolve) => {
     const child = spawn(config2.bin, buildArgs(o), {
       cwd: o.cwd,
-      env: process.env,
+      env: childEnv(o.cwd, { OPENCODE_CONFIG_CONTENT: configContent }),
       stdio: ["ignore", "pipe", "pipe"]
     });
     let buf = "";
@@ -21718,7 +21761,7 @@ function execText(args, cwd) {
   return new Promise((resolve) => {
     const child = spawn(config2.bin, args, {
       cwd,
-      env: process.env,
+      env: childEnv(cwd),
       stdio: ["ignore", "pipe", "pipe"]
     });
     let stdout = "";
