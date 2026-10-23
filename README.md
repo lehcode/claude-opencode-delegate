@@ -97,7 +97,7 @@ The variables are read by the MCP server unless noted. These are the only variab
 
 ## Standalone server
 
-The MCP server is also published to npm as `@lehcode/claudelegate` (needs Bun). Register it in any MCP client with command `bunx` and args `["@lehcode/claudelegate"]`. See `examples/claude_desktop_config.json`.
+The MCP server also runs outside Claude Code (needs Bun). npm publishing is paused, so `@lehcode/claudelegate` isn't on npm yet. Meanwhile, register it in any MCP client with command `bun` and args `["/path/to/clone/dist/index.js"]`. `examples/claude_desktop_config.json` shows the `bunx` form for the published package.
 
 ## Development
 
@@ -117,9 +117,11 @@ Tests are fixture-based and need no running services.
 
 ## Releasing
 
-Automated by release-please (`.github/workflows/release.yml`). Conventional commits merged to `main` open or update a release PR that bumps `package.json`, `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` and writes `CHANGELOG.md`. Merging it creates the `vX.Y.Z` tag and GitHub release and publishes to npm via trusted publishing (OIDC, no token, provenance automatic). Never edit versions by hand.
+Automated by release-please (`.github/workflows/release.yml`). Conventional commits merged to `main` open or update a release PR that bumps `package.json`, `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` and writes `CHANGELOG.md`. Merging it creates the `vX.Y.Z` tag and GitHub release. Never edit versions by hand.
 
-The first publish is manual (`npm publish --access public`), then add a trusted publisher on npmjs.com for repository `lehcode/claudelegate`, workflow `release.yml`. Optional: `RELEASE_PLEASE_TOKEN` secret (PAT or app token with `contents` and `pull-requests` write), because release PRs made with the default `GITHUB_TOKEN` don't trigger CI.
+Release PRs are opened with the `RELEASE_PLEASE_TOKEN` secret (PAT or app token with `contents` and `pull-requests` write), because PRs made with the default `GITHUB_TOKEN` don't trigger CI.
+
+Publishing to npm is paused: the `publish` job runs only when the repository variable `NPM_PUBLISH` is `true`. To resume it, publish the first version by hand (`npm publish --access public`), add a trusted publisher on npmjs.com for repository `lehcode/claudelegate`, workflow `release.yml`, then set `NPM_PUBLISH`. The job publishes through trusted publishing (OIDC, no token, provenance automatic).
 
 ## License
 
