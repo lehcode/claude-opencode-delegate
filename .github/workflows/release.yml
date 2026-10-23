@@ -1,6 +1,7 @@
-# Release flow: conventional commits on main -> release-please PR -> merge -> tag, GitHub release, npm publish.
-# The first publish must be manual (`npm publish --access public`); afterwards configure the trusted
-# publisher on npmjs.com (repo lehcode/claudelegate, workflow release.yml). No npm token is used.
+# Release flow: conventional commits on main -> release-please PR -> merge -> tag, GitHub release.
+# npm publishing is paused: the publish job runs only when the repository variable NPM_PUBLISH is 'true'.
+# To resume: publish the first version by hand (`npm publish --access public`), configure the trusted
+# publisher on npmjs.com (repo lehcode/claudelegate, workflow release.yml), then set NPM_PUBLISH. No npm token is used.
 name: release
 on:
   push:
@@ -24,7 +25,7 @@ jobs:
           manifest-file: .release-please-manifest.json
   publish:
     needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
+    if: needs.release-please.outputs.release_created == 'true' && vars.NPM_PUBLISH == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
